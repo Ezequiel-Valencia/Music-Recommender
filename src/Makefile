@@ -5,4 +5,4 @@ test:
 	@go test -v ./...
 
 run:
-	@go run cmd/main.go
+	@go run ./cmd/main.go

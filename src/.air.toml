@@ -1,0 +1,3 @@
+[build]
+# https://github.com/air-verse/air/blob/master/air_example.toml
+cmd = "go build -o ./tmp/main ./cmd/main.go"

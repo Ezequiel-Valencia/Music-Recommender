@@ -1,0 +1,20 @@
+services:
+  threemix:
+    container_name: threemix
+    build: ../
+    develop:
+      watch:
+        - action: sync
+          path: ../src
+          target: /app/src
+    security_opt:
+      - no-new-privileges:true
+    networks:
+        - threemix
+    volumes:
+      - ../src/music.db:/app/storage
+    ports:
+      - 127.0.0.1:8080:8080
+
+networks:
+    threemix:
