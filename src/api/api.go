@@ -1,10 +1,12 @@
 package api
 
 import (
+	"music-recommender/db"
+	"music-recommender/services/auth"
+	"music-recommender/services/curator"
 	"music-recommender/services/daily-user"
 	"net/http"
-	"music-recommender/services/curator"
-	"music-recommender/db"
+
 	"github.com/gorilla/mux"
 )
 
@@ -29,6 +31,9 @@ func (a APIServer) Run() error {
 
 	curator_handler := music_curator.NewHandler(a.db)
 	curator_handler.RegisterCuratorRoutes(subrouter)
+
+	auth_handler := auth.NewHandler(a.db)
+	auth_handler.RegisterCuratorRoutes(subrouter)
 
 	return http.ListenAndServe(a.addr, subrouter)
 }

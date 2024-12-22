@@ -57,7 +57,20 @@ const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRankin
 )`
 
 const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
-	id INTEGER NOT NULL PRIMARY KEY,
+	user_id INTEGER NOT NULL PRIMARY KEY,
+	username TEXT,
+	passwd_hash TEXT,
+	subject_identifier TEXT,
+	creation_source TEXT,
+	creation_date DATETIME NOT NULL,
+	user_role TEXT,
+	user_privileges TEXT
+)`
+
+const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
+	user_id,
+	session_id TEXT,
+	FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 )`
 
 
@@ -76,6 +89,10 @@ func CreateSQLiteStorage() *MusicDB{
 		log.Fatal().AnErr("Create user table fail", err)
 	}
 	_, err = db.Exec(createMusicTable)
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+	}
+	_, err = db.Exec(createSessionIDTable)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
