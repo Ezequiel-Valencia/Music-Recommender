@@ -1,7 +1,7 @@
 package daily_user
 
 import (
-	"music-recommender/db"
+	"music-recommender/db/ranking_table"
 	"music-recommender/types"
 	"music-recommender/utils"
 	"net/http"
@@ -11,11 +11,11 @@ import (
 )
 
 type Handler struct{
-	musicDB *db.MusicDB
+	rankingTable *ranking_table.RankingTable
 }
 
 
-func NewHandler(mdb *db.MusicDB) *Handler{
+func NewHandler(mdb *ranking_table.RankingTable) *Handler{
 	return &Handler{mdb}
 }
 
@@ -36,20 +36,20 @@ func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request){
 		log.Error().Msg(err.Error())
 		return
 	}
-	h.musicDB.UpdateTodaysRanking(vote)
-	var todaysRanking *types.TodaysRankingPayload = h.musicDB.GetTodaysRanking()
+	h.rankingTable.UpdateTodaysRanking(vote)
+	var todaysRanking *types.TodaysRankingPayload = h.rankingTable.GetTodaysRanking()
 	utils.WriteJSON(w, todaysRanking, 200)
 }
 
 func (h *Handler) handleGettingTodaysMusic(w http.ResponseWriter, r *http.Request){
 	// get todays music from the DB and return the information
-	todaysMusic := h.musicDB.GetTodaysMusic()
+	todaysMusic := h.rankingTable.GetTodaysMusic()
 	utils.WriteJSON(w, todaysMusic, 200)
 }
 
 func (h *Handler) handleGettingCalendar(w http.ResponseWriter, r *http.Request){
 	// get past music choices with their dates
-	calendar := h.musicDB.GetCalendarsMusic()
+	calendar := h.rankingTable.GetCalendarsMusic()
 	utils.WriteJSON(w, calendar, 200)
 }
 

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"net/http"
-
 	"music-recommender/db"
 
 	"github.com/rs/zerolog/log"
@@ -12,9 +11,9 @@ import (
 
 
 
-func RequireAuth(handlerFunc http.HandlerFunc, mdb *db.MusicDB) http.HandlerFunc{
+func RequireAuth(handlerFunc http.HandlerFunc, adb *db.AbstractDB) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request){
-		isSessionValid, err := mdb.SessionTokenIsValid("username")
+		isSessionValid, err := adb.SessionTokenIsValid("username")
 		if (err != nil || !isSessionValid) {
 			if (err != nil){
 				log.Err(err).Msg("User is not authenticated!")

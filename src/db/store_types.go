@@ -1,6 +1,5 @@
 package db
 
-import "time"
 
 type MusicEntry struct {
 	id          int
@@ -21,11 +20,4 @@ type RankEntry struct {
 	ranking     string
 }
 
-type User struct {
-	UserId          int
-	Username        string
-	CreationSource UserCreationSource
-	CreationDate   time.Time
-	UserRole       UserRoles
-	UserPrivileges UserPrivileges
-}
+

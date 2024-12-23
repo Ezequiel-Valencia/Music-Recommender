@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"music-recommender/db"
+	"music-recommender/db/auth_table"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,16 +21,16 @@ import (
 // This one contains session related information and has to refreshed more frequently
 
 type Handler struct {
-	musicDB *db.MusicDB
+	authTable *auth_table.AuthTable
 }
 
-func NewHandler(mdb *db.MusicDB) *Handler {
+func NewHandler(mdb *auth_table.AuthTable) *Handler {
 	return &Handler{mdb}
 }
 
-func (h *Handler) RegisterCuratorRoutes(router *mux.Router) {
+func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
 	router.HandleFunc("/login", h.login).Methods("POST")
-	router.HandleFunc("/logout", RequireAuth(h.logout, h.musicDB)).Methods("POST")
+	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods("POST")
 	router.HandleFunc("/register", h.register).Methods("POST")
 }
 
@@ -51,12 +51,12 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	////////////////////////////
 	// Check User Credentials //
 	///////////////////////////
-	if h.musicDB.ValidUsernameAndCredentials(username, hashedPassword) {
+	if h.authTable.ValidUsernameAndCredentials(username, hashedPassword) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
 	}
 
-	sessionid, err := h.musicDB.GenerateAndStoreSessionID(h.musicDB.GetUserStructFromUsername(username))
+	sessionid, err := h.authTable.GenerateAndStoreSessionID(h.authTable.GetUserStructFromUsername(username))
 	// csrfToken := ""
 	if err != nil {
 		http.Error(w, "Unable to login user.", http.StatusBadRequest)
@@ -92,7 +92,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	h.musicDB.RemoveSessionTokens("username", "sessionid")
+	h.authTable.RemoveSessionTokens("username", "sessionid")
 }
 
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +105,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user := h.musicDB.GetUserStructFromUsername(username); user.UserId != 0 {
+	if user := h.authTable.GetUserStructFromUsername(username); user.UserId != 0 {
 		http.Error(w, "User already exists", http.StatusConflict)
 		log.Info().Msgf("%v", user)
 		return
@@ -118,7 +118,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.musicDB.CreateUser(username, hashedPassword, "", db.LocalUserCreationSource.String())
+	h.authTable.CreateUser(username, hashedPassword, "", auth_table.LocalUserCreationSource.String())
 	log.Info().Msgf("Created User: %s", username)
 }
 
