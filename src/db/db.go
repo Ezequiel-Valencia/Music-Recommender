@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"music-recommender/utils"
 	"net/http"
 	"time"
 
@@ -28,7 +27,29 @@ func CreateSQLiteStorage() (*AbstractDB, *sql.DB) {
 	return &AbstractDB{db}, db
 }
 
-func (adb AbstractDB) SessionTokenIsValid(username string) (bool, error) {
-	adb.db.Exec("")
-	return false, nil
+
+func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
+	sessionCookie, err := r.Cookie("session_token")
+	if err != nil{return User{}, err}
+	
+	var userID int
+	err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie.Value).Scan(&userID)
+	if err != nil {log.Err(err).Msg("Can't retrieve user ID from session."); return User{}, err}
+
+	var user_id int
+	var username, creation_source, creation_date, user_role, user_privileges string
+	err = abd.db.QueryRow(`SELECT user_id, username, creation_source, creation_date, user_role, user_privileges 
+	FROM users WHERE user_id = $1`, userID).Scan(&user_id,
+		&username, &creation_source, &creation_date, &user_role, &user_privileges)
+	if err == sql.ErrNoRows || err != nil {
+		return User{}, err
+	}
+	time, _ := time.Parse(time.RFC3339, creation_date)
+	return User{UserId: user_id, Username: username,
+		CreationSource: StringToUserCreationSource(creation_source),
+		CreationDate:   time,
+		UserRole:       StringToUserRoles(user_role),
+		UserPrivileges: StringToUserPrivileges(user_privileges),
+	}, nil
 }
+

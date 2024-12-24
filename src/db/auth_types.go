@@ -1,4 +1,4 @@
-package auth_table
+package db
 
 import "time"
 
@@ -35,7 +35,7 @@ func (ur UserRoles) String() string {
 func (ur UserRoles) EnumIndex() int {
 	return int(ur)
 }
-func stringToUserRoles(s string) UserRoles {
+func StringToUserRoles(s string) UserRoles {
 	switch s {
 	case userRolesMap[VoterRole.EnumIndex()]:
 		return VoterRole
@@ -60,7 +60,7 @@ var userPrivilegesMap = map[int]string{
 	OwnerPrivileges.EnumIndex():     "Owner",
 }
 
-func stringToUserPrivileges(s string) UserPrivileges {
+func StringToUserPrivileges(s string) UserPrivileges {
 	switch s {
 	case userPrivilegesMap[NoPrivileges.EnumIndex()]:
 		return NoPrivileges
@@ -86,7 +86,7 @@ const (
 	LocalUserCreationSource UserCreationSource = iota
 )
 
-func stringToUserCreationSource(s string) UserCreationSource {
+func StringToUserCreationSource(s string) UserCreationSource {
 	switch s {
 	default:
 		return LocalUserCreationSource

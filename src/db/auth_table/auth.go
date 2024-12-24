@@ -20,51 +20,61 @@ func CreateAuthTableDriver(db *sql.DB, abd *db.AbstractDB) *AuthTable{
 	return &AuthTable{db: db, AbstractDB: abd}
 }
 
-func (mdb AuthTable) CreateUser(username string, hashedPassword string, subject_identifier string, creation_source string) error {
-	const executeString = `INSERT INTO users(username, passwd_hash, subject_identifier, creation_source, 
+func (mdb AuthTable) CreateUser(username string, hashedPassword string, 
+	subject_identifier string, creation_source string) error {
+
+	const executeString = `INSERT INTO users(username, password_hash, subject_identifier, creation_source, 
 		creation_date, user_role, user_privileges) 
-	VALUES(?, ?, ?, ?, ?, ?, ?)`
+	VALUES($1, $2, $3, $4, $5, $6, $7)`
 	_, err := mdb.db.Exec(executeString, username, hashedPassword, subject_identifier,
-		creation_source, time.Now().UTC().Format(time.RFC3339), VoterRole.String(), NoPrivileges.String())
+		creation_source, time.Now().UTC().Format(time.RFC3339), db.VoterRole.String(), db.NoPrivileges.String())
 	if err != nil {
+		log.Err(err).Msg("DB Error")
 		return err
 	}
 	return nil
 }
 
-func (mdb AuthTable) DeleteUser() {
+func (mdb AuthTable) DeleteUser(username string, userID int) error{
+	_, err := mdb.db.Exec("DELETE FROM users WHERE username = $1 AND user_id = $2", username, userID)
+	return err
 }
 
-func (mdb AuthTable) GetUserStructFromUsername(providedUsername string) User {
+func (mdb AuthTable) GetUserStructFromUsername(providedUsername string) db.User {
 	var user_id int
 	var username, creation_source, creation_date, user_role, user_privileges string
 	err := mdb.db.QueryRow(`SELECT user_id, username, creation_source, creation_date, user_role, user_privileges 
-	FROM users WHERE username = ?`, providedUsername).Scan(&user_id,
+	FROM users WHERE username = $1`, providedUsername).Scan(&user_id,
 		&username, &creation_source, &creation_date, &user_role, &user_privileges)
-	if err == sql.ErrNoRows {
-		return User{}
+	if err == sql.ErrNoRows || err != nil {
+		return db.User{}
 	}
 	time, _ := time.Parse(time.RFC3339, creation_date)
-	return User{UserId: user_id, Username: username,
-		CreationSource: stringToUserCreationSource(creation_source),
+	return db.User{UserId: user_id, Username: username,
+		CreationSource: db.StringToUserCreationSource(creation_source),
 		CreationDate:   time,
-		UserRole:       stringToUserRoles(user_role),
-		UserPrivileges: stringToUserPrivileges(user_privileges),
+		UserRole:       db.StringToUserRoles(user_role),
+		UserPrivileges: db.StringToUserPrivileges(user_privileges),
 	}
 }
 
-func (mdb AuthTable) ValidUsernameAndCredentials(username string, hashedPassword string) bool {
-	dbHashedPassword := ""
-	err := bcrypt.CompareHashAndPassword([]byte(dbHashedPassword), []byte(hashedPassword))
+func (mdb AuthTable) ValidUsernameAndCredentials(username string, password string) bool {
+	var dbHashedPassword string
+	err := mdb.db.QueryRow("SELECT password_hash FROM users WHERE username = $1", username).Scan(&dbHashedPassword)
+	if err != nil {
+		return false
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(dbHashedPassword), []byte(password))
 	return err == nil
 }
 
-func (mdb AuthTable) GenerateAndStoreSessionID(user User) (string, error) {
-	newToken := GenerateSecureToken(32)
+func (mdb AuthTable) GenerateAndStoreSessionID(user db.User) (string, error) {
+	newToken := GenerateSecureToken(50)
 	const executeString = `INSERT INTO sessions(user_id, session_id) 
-	VALUES(?, ?)`
+	VALUES($1, $2)`
 	_, err := mdb.db.Exec(executeString, user.UserId, newToken)
 	if err != nil {
+		log.Err(err).Msg("DB Error")
 		return "", err
 	}
 
@@ -73,8 +83,9 @@ func (mdb AuthTable) GenerateAndStoreSessionID(user User) (string, error) {
 
 
 
-func (mdb AuthTable) RemoveSessionTokens(username string, sessionid string) error {
-	return nil
+func (mdb AuthTable) RemoveSessionTokens(user db.User, sessionid string) error {
+	_, err := mdb.db.Exec("DELETE FROM sessions WHERE user_id = $1 AND session_id = $2", user.UserId, sessionid)
+	return err
 }
 
 func (mdb AuthTable) CreateNewCurator() error {

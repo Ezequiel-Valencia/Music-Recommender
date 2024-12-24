@@ -1,7 +1,10 @@
 package auth
 
 import (
+	"music-recommender/db"
 	"music-recommender/db/auth_table"
+	"music-recommender/types"
+	"music-recommender/utils"
 	"net/http"
 	"strconv"
 	"time"
@@ -29,9 +32,21 @@ func NewHandler(mdb *auth_table.AuthTable) *Handler {
 }
 
 func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
+	router.HandleFunc("/user", RequireAuth(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods("GET")
+	router.HandleFunc("/user", RequireAuth(h.deleteUser, h.authTable.AbstractDB)).Methods("DELETE")
 	router.HandleFunc("/login", h.login).Methods("POST")
 	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods("POST")
 	router.HandleFunc("/register", h.register).Methods("POST")
+}
+
+func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User){
+	utils.WriteJSON(w, types.UserDTO{Username: user.Username, 
+		CreationDate: user.CreationDate.Format(time.DateOnly), Role: user.UserRole.String(),}, 200)
+}
+
+func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user db.User){
+
+	h.authTable.DeleteUser(user.Username, user.UserId)
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
@@ -39,52 +54,32 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 	// Clean the strings
-	username = strconv.Quote(username)
-	password = strconv.Quote(password)
-
-	hashedPassword, err := hashPassword(password)
-	if err != nil {
-		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
-		return
-	}
+	// username = strconv.QuoteToASCII(username)
+	// password = strconv.QuoteToASCII(password)
 
 	////////////////////////////
 	// Check User Credentials //
 	///////////////////////////
-	if h.authTable.ValidUsernameAndCredentials(username, hashedPassword) {
+	// if not valid
+	if !h.authTable.ValidUsernameAndCredentials(username, password) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
 	}
 
-	sessionid, err := h.authTable.GenerateAndStoreSessionID(h.authTable.GetUserStructFromUsername(username))
-	// csrfToken := ""
-	if err != nil {
-		http.Error(w, "Unable to login user.", http.StatusBadRequest)
-	}
-
-	var oneHundredDays time.Duration = 100 * (time.Hour * 24)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    sessionid,
-		Expires:  time.Now().Add(oneHundredDays),
-		HttpOnly: true, // Prevents malicious
-		// Path: "/", // Accessible on all paths
-		// Domain: "go-server-domain",
-	})
-
-	// http.SetCookie(w, &http.Cookie{
-	// 	Name: "csrf_token",
-	// 	Value: csrfToken,
-	// 	Expires: time.Now().Add(oneHundredDays),
-	// 	HttpOnly: false, // Needs to be accessed on the client side JS, and put as the X-CSRF-Token
-	// 	Path: "/", // Accessible on all paths
-	// 	Domain: "go-server-domain",
-	// })
+	h.storeUserSession(w, username)
 
 }
 
-func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
+	sessionCookie, err := r.Cookie("session_token")
+	if (err != nil){
+		http.Error(w, "Can't logout", 500)
+	}
+	err = h.authTable.RemoveSessionTokens(user, sessionCookie.Value)
+	if (err != nil){
+		http.Error(w, "Can't logout", 500)
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    "",
@@ -92,7 +87,6 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	h.authTable.RemoveSessionTokens("username", "sessionid")
 }
 
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
@@ -118,10 +112,9 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.authTable.CreateUser(username, hashedPassword, "", auth_table.LocalUserCreationSource.String())
-	log.Info().Msgf("Created User: %s", username)
+	h.authTable.CreateUser(username, hashedPassword, "", db.LocalUserCreationSource.String())
+	h.storeUserSession(w, username)
 }
 
-func StoreUserSession() {}
 
-func GetSessionUser() {}
+
