@@ -17,16 +17,15 @@ Useful in case a special day is made where previous songs can be ranked again
 */
 const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
 	id INTEGER NOT NULL PRIMARY KEY,
-	insert_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	insert_date TIMESTAMP NOT NULL,
 	name TEXT,
 	songURL TEXT,
 	genre TEXT,
 	subgenre TEXT,
 	description TEXT,
-	submitterID,
-	rank_id TEXT
-	num_ranks INTEGER,
-	FOREIGN KEY (submitterID) REFERENCES users(id)
+	submitterID INTEGER references users(user_id),
+	rank_id TEXT,
+	num_ranks INTEGER
 )`
 
 /*
@@ -37,7 +36,7 @@ being a reference to a music ID
 
 const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranking (
 	id INTEGER NOT NULL PRIMARY KEY,
-	date_ranked DATETIME NOT NULL,
+	date_ranked TIMESTAMP NOT NULL,
 	ranking TEXT
 )`
 
@@ -47,27 +46,25 @@ Sum up the choices and put them in the ranking table as appropriate
 Clean the table, and place the new songs which will be ranked within the table
 */
 const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRanking (
-	songID INTEGER,
+	songID INTEGER references music(id),
 	name TEXT,
-	num_votes INTEGER,
-	FOREIGN KEY (songID) REFERENCES music(id)
+	num_votes INTEGER
 )`
 
 const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
-	user_id INTEGER NOT NULL PRIMARY KEY,
+	user_id INTEGER PRIMARY KEY,
 	username TEXT,
-	passwd_hash TEXT,
+	password_hash TEXT,
 	subject_identifier TEXT,
 	creation_source TEXT,
-	creation_date DATETIME NOT NULL,
+	creation_date TIMESTAMP NOT NULL,
 	user_role TEXT,
 	user_privileges TEXT
 )`
 
 const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
-	user_id,
-	session_id TEXT,
-	FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+	user_id INTEGER references users(user_id) ON DELETE CASCADE,
+	session_id TEXT
 )`
 
 
@@ -78,7 +75,7 @@ func createTables(db *sql.DB){
 	for _, v := range tables{
 		_, err := db.Exec(v)
 		if err != nil{
-			log.Fatal().AnErr("Table Creation Error", err)
+			log.Fatal().AnErr("err", err).Msg("Table Creation Error")
 		}
 	}
 }

@@ -2,7 +2,12 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"music-recommender/utils"
+	"net/http"
+	"time"
 
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3" // Used to import the side effects of a package. Allows for SQlit3 Driver to be known
 	"github.com/rs/zerolog/log"
 )
@@ -12,7 +17,10 @@ type AbstractDB struct {
 }
 
 func CreateSQLiteStorage() (*AbstractDB, *sql.DB) {
-	db, err := sql.Open("sqlite3", "./music.db")
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+    "password=%s dbname=%s sslmode=disable",
+    "localhost", 5432, "postgres", "passwd", "postgres")
+	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
