@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"music-recommender/config"
 	"net/http"
 	"time"
 
@@ -18,7 +19,7 @@ type AbstractDB struct {
 func CreateSQLiteStorage() (*AbstractDB, *sql.DB) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
     "password=%s dbname=%s sslmode=disable",
-    "localhost", 5432, "postgres", "passwd", "postgres")
+    config.Envs.DBHost, config.Envs.DBPort, config.Envs.DBUser, config.Envs.DBPasswd, config.Envs.DBName)
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
@@ -44,7 +45,7 @@ func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
 	if err == sql.ErrNoRows || err != nil {
 		return User{}, err
 	}
-	time, _ := time.Parse(time.RFC3339, creation_date)
+	time, _ := time.Parse(config.Envs.TimeFormat, creation_date)
 	return User{UserId: user_id, Username: username,
 		CreationSource: StringToUserCreationSource(creation_source),
 		CreationDate:   time,
