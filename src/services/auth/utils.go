@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"music-recommender/config"
 	"music-recommender/db"
 	"net/http"
 	"time"
@@ -43,7 +44,7 @@ func (h *Handler) storeUserSession(w http.ResponseWriter, username string) {
 	var oneHundredDays time.Duration = 100 * (time.Hour * 24)
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
+		Name:     config.Envs.SessionCookieName,
 		Value:    sessionid,
 		Expires:  time.Now().Add(oneHundredDays),
 		HttpOnly: true, // Prevents malicious

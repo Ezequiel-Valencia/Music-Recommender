@@ -30,7 +30,7 @@ func CreateSQLiteStorage() (*AbstractDB, *sql.DB) {
 
 
 func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
-	sessionCookie, err := r.Cookie("session_token")
+	sessionCookie, err := r.Cookie(config.Envs.SessionCookieName)
 	if err != nil{return User{}, err}
 	
 	var userID int

@@ -20,6 +20,8 @@ type Config struct{
 	DBName 		string
 	DBUser		string
 	DBPasswd 	string
+
+	SessionCookieName	string
 }
 
 var Envs = initConfig()
@@ -33,6 +35,7 @@ func initConfig() Config{
 		DBName: getEnv("DB_NAME", "postgres", true),
 		DBUser: getEnv("DB_USER", "postgres", true),
 		DBPasswd: getEnv("DB_PASSWD", "passwd", true),
+		SessionCookieName: "session_token",
 	}
 }
 

@@ -13,21 +13,21 @@ import (
 )
 
 type AuthTable struct {
-	db *sql.DB
+	db         *sql.DB
 	AbstractDB *db.AbstractDB
 }
 
-func CreateAuthTableDriver(db *sql.DB, abd *db.AbstractDB) *AuthTable{
+func CreateAuthTableDriver(db *sql.DB, abd *db.AbstractDB) *AuthTable {
 	return &AuthTable{db: db, AbstractDB: abd}
 }
 
-func (mdb AuthTable) CreateUser(username string, hashedPassword string, 
+func (at AuthTable) CreateUser(username string, hashedPassword string,
 	subject_identifier string, creation_source string) error {
 
 	const executeString = `INSERT INTO users(username, password_hash, subject_identifier, creation_source, 
 		creation_date, user_role, user_privileges) 
 	VALUES($1, $2, $3, $4, $5, $6, $7)`
-	_, err := mdb.db.Exec(executeString, username, hashedPassword, subject_identifier,
+	_, err := at.db.Exec(executeString, username, hashedPassword, subject_identifier,
 		creation_source, time.Now().UTC().Format(config.Envs.TimeFormat), db.VoterRole.String(), db.NoPrivileges.String())
 	if err != nil {
 		log.Err(err).Msg("DB Error")
@@ -36,8 +36,8 @@ func (mdb AuthTable) CreateUser(username string, hashedPassword string,
 	return nil
 }
 
-func (mdb AuthTable) DeleteUser(username string, userID int) error{
-	_, err := mdb.db.Exec("DELETE FROM users WHERE username = $1 AND user_id = $2", username, userID)
+func (at AuthTable) DeleteUser(username string, userID int) error {
+	_, err := at.db.Exec("DELETE FROM users WHERE username = $1 AND user_id = $2", username, userID)
 	return err
 }
 
@@ -59,9 +59,9 @@ func (mdb AuthTable) GetUserStructFromUsername(providedUsername string) db.User 
 	}
 }
 
-func (mdb AuthTable) ValidUsernameAndCredentials(username string, password string) bool {
+func (at AuthTable) CorrectUsernameAndPassword(username string, password string) bool {
 	var dbHashedPassword string
-	err := mdb.db.QueryRow("SELECT password_hash FROM users WHERE username = $1", username).Scan(&dbHashedPassword)
+	err := at.db.QueryRow("SELECT password_hash FROM users WHERE username = $1", username).Scan(&dbHashedPassword)
 	if err != nil {
 		return false
 	}
@@ -82,15 +82,9 @@ func (mdb AuthTable) GenerateAndStoreSessionID(user db.User) (string, error) {
 	return newToken, nil
 }
 
-
-
-func (mdb AuthTable) RemoveSessionTokens(user db.User, sessionid string) error {
-	_, err := mdb.db.Exec("DELETE FROM sessions WHERE user_id = $1 AND session_id = $2", user.UserId, sessionid)
+func (at AuthTable) RemoveSessionTokens(user db.User, sessionid string) error {
+	_, err := at.db.Exec("DELETE FROM sessions WHERE user_id = $1 AND session_id = $2", user.UserId, sessionid)
 	return err
-}
-
-func (mdb AuthTable) CreateNewCurator() error {
-	return nil
 }
 
 func GenerateSecureToken(length int) string {
