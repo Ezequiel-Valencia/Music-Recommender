@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -95,3 +96,7 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
     return nil
 }
 
+
+func IsStringAlphaNumeric(text string) bool{
+    return regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(text)
+}

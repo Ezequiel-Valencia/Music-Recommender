@@ -1,12 +1,12 @@
 package auth
 
 import (
+	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/db/auth_table"
 	"music-recommender/types"
 	"music-recommender/utils"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -39,12 +39,12 @@ func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
 	router.HandleFunc("/register", h.register).Methods("POST")
 }
 
-func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User){
-	utils.WriteJSON(w, types.UserDTO{Username: user.Username, 
-		CreationDate: user.CreationDate.Format(time.DateOnly), Role: user.UserRole.String(),}, 200)
+func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User) {
+	utils.WriteJSON(w, types.UserDTO{Username: user.Username,
+		CreationDate: user.CreationDate.Format(time.DateOnly), Role: user.UserRole.String()}, 200)
 }
 
-func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user db.User){
+func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user db.User) {
 
 	h.authTable.DeleteUser(user.Username, user.UserId)
 }
@@ -53,15 +53,17 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	// provide credentials to gain an authentication token
 	username := r.FormValue("username")
 	password := r.FormValue("password")
-	// Clean the strings
-	// username = strconv.QuoteToASCII(username)
-	// password = strconv.QuoteToASCII(password)
+
+	if _, err := r.Cookie(config.Envs.SessionCookieName); err != http.ErrNoCookie {
+		http.Error(w, "User already logged in.", http.StatusBadRequest)
+		return
+	}
 
 	////////////////////////////
 	// Check User Credentials //
 	///////////////////////////
 	// if not valid
-	if !h.authTable.ValidUsernameAndCredentials(username, password) {
+	if !utils.IsStringAlphaNumeric(username) || !utils.IsStringAlphaNumeric(password) || !h.authTable.CorrectUsernameAndPassword(username, password) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
 	}
@@ -71,17 +73,17 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
-	sessionCookie, err := r.Cookie("session_token")
-	if (err != nil){
+	sessionCookie, err := r.Cookie(config.Envs.SessionCookieName)
+	if err != nil {
 		http.Error(w, "Can't logout", 500)
 	}
 	err = h.authTable.RemoveSessionTokens(user, sessionCookie.Value)
-	if (err != nil){
+	if err != nil {
 		http.Error(w, "Can't logout", 500)
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
+		Name:     config.Envs.SessionCookieName,
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HttpOnly: true,
@@ -92,9 +94,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	var username string = r.FormValue("username")
 	var password string = r.FormValue("password")
-	var clean_username string = strconv.Quote(username)
-	var clean_password string = strconv.Quote(password)
-	if (len(username) < 4 || len(password) < 8) && (clean_username != username || clean_password != password) {
+	if len(username) < 4 || len(password) < 8 || !utils.IsStringAlphaNumeric(username) || !utils.IsStringAlphaNumeric(password) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
 	}
@@ -115,6 +115,3 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	h.authTable.CreateUser(username, hashedPassword, "", db.LocalUserCreationSource.String())
 	h.storeUserSession(w, username)
 }
-
-
-
