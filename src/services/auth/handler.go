@@ -54,7 +54,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	if _, err := r.Cookie(config.Envs.SessionCookieName); err != http.ErrNoCookie {
+	if _, err := r.Cookie(config.StaticEnvs.SessionCookieName); err != http.ErrNoCookie {
 		http.Error(w, "User already logged in.", http.StatusBadRequest)
 		return
 	}
@@ -73,7 +73,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
-	sessionCookie, err := r.Cookie(config.Envs.SessionCookieName)
+	sessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
 	if err != nil {
 		http.Error(w, "Can't logout", 500)
 	}
@@ -83,7 +83,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     config.Envs.SessionCookieName,
+		Name:     config.StaticEnvs.SessionCookieName,
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HttpOnly: true,

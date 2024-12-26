@@ -19,19 +19,23 @@ type AbstractDB struct {
 func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		config.Envs.DBHost, config.Envs.DBPort, config.Envs.DBUser, config.Envs.DBPasswd, config.Envs.DBName)
+		config.DynamicEnvs.DBHost, config.DynamicEnvs.DBPort, config.DynamicEnvs.DBUser, config.DynamicEnvs.DBPasswd, config.DynamicEnvs.DBName)
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		if testMode{return nil, nil, err}
+		if testMode {
+			return nil, nil, err
+		}
 		log.Fatal().Msg(err.Error())
 	}
 	err = createTables(db, testMode)
-	if err != nil{return nil, nil, err}
+	if err != nil {
+		return nil, nil, err
+	}
 	return &AbstractDB{db}, db, nil
 }
 
 func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
-	sessionCookie, err := r.Cookie(config.Envs.SessionCookieName)
+	sessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
 	if err != nil {
 		return User{}, err
 	}
@@ -51,7 +55,7 @@ func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
 	if err == sql.ErrNoRows || err != nil {
 		return User{}, err
 	}
-	time, _ := time.Parse(config.Envs.TimeFormat, creation_date)
+	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
 	return User{UserId: user_id, Username: username,
 		CreationSource: StringToUserCreationSource(creation_source),
 		CreationDate:   time,

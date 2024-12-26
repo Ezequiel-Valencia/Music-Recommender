@@ -45,7 +45,7 @@ func (h *Handler) storeUserSession(w http.ResponseWriter, username string) {
 	var oneHundredDays time.Duration = 100 * (time.Hour * 24)
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     config.Envs.SessionCookieName,
+		Name:     config.StaticEnvs.SessionCookieName,
 		Value:    sessionid,
 		Expires:  time.Now().Add(oneHundredDays),
 		HttpOnly: true, // Prevents malicious

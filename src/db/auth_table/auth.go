@@ -28,7 +28,7 @@ func (at AuthTable) CreateUser(username string, hashedPassword string,
 		creation_date, user_role, user_privileges) 
 	VALUES($1, $2, $3, $4, $5, $6, $7)`
 	_, err := at.db.Exec(executeString, username, hashedPassword, subject_identifier,
-		creation_source, time.Now().UTC().Format(config.Envs.TimeFormat), db.VoterRole.String(), db.NoPrivileges.String())
+		creation_source, time.Now().UTC().Format(config.StaticEnvs.TimeFormat), db.VoterRole.String(), db.NoPrivileges.String())
 	if err != nil {
 		log.Err(err).Msg("DB Error")
 		return err
@@ -50,7 +50,7 @@ func (mdb AuthTable) GetUserStructFromUsername(providedUsername string) db.User 
 	if err == sql.ErrNoRows || err != nil {
 		return db.User{}
 	}
-	time, _ := time.Parse(config.Envs.TimeFormat, creation_date)
+	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
 	return db.User{UserId: user_id, Username: username,
 		CreationSource: db.StringToUserCreationSource(creation_source),
 		CreationDate:   time,
