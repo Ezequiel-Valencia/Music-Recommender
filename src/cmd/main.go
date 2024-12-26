@@ -2,8 +2,8 @@ package main
 
 import (
 	api "music-recommender/api"
-	"music-recommender/config"
 	"music-recommender/db"
+	"net/http"
 
 	"github.com/rs/zerolog/log"
 )
@@ -13,8 +13,8 @@ func main() {
 
 	abstractDB, dbPointer, _ := db.CreateDB(false)
 
-	var server *api.APIServer = api.CreateMainServer(config.DynamicEnvs.HostAndPort, dbPointer, abstractDB) //Pointer to the API server struct
-	if err := server.Run(); err != nil {
+	var server *http.Server = api.CreateMainServer(dbPointer, abstractDB) //Pointer to the API server struct
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal().AnErr("error", err)
 	}
 

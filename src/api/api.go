@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/db/auth_table"
 	"music-recommender/db/music_table"
@@ -15,31 +16,24 @@ import (
 )
 
 type APIServer struct {
-	db   *sql.DB // Pointer to SQL DB
-	abd  *db.AbstractDB
-	addr string
+	Server *http.Server
 }
 
-func CreateMainServer(addr string, db *sql.DB, abd *db.AbstractDB) *APIServer {
-	return &APIServer{
-		db:   db,
-		addr: addr,
-		abd:  abd,
-	}
-}
-
-func (a APIServer) Run() error {
+func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
+	// csrfMiddleware := csrf.Protect([]byte("secret_key"))
 	router := mux.NewRouter()
-	subrouter := router.PathPrefix("/api/v1").Subrouter()
+	// http.Handle("/", csrfMiddleware(router)) // Sets the main router to handle everything with csrfMiddleware
 
-	anonymous_user_handler := daily_user.NewHandler(ranking_table.CreateRankingTableDriver(a.db))
+	subrouter := router.PathPrefix(config.StaticEnvs.APIPrefix).Subrouter()
+
+	anonymous_user_handler := daily_user.NewHandler(ranking_table.CreateRankingTableDriver(db))
 	anonymous_user_handler.RegisterAnonymousUserRoutes(subrouter)
 
-	curator_handler := curator_service.NewHandler(music_table.CreateMusicTableDriver(a.db, a.abd))
+	curator_handler := curator_service.NewHandler(music_table.CreateMusicTableDriver(db, abd))
 	curator_handler.RegisterCuratorRoutes(subrouter)
 
-	auth_handler := auth.NewHandler(auth_table.CreateAuthTableDriver(a.db, a.abd))
+	auth_handler := auth.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
 	auth_handler.RegisterAuthRoutes(subrouter)
 
-	return http.ListenAndServe(a.addr, subrouter)
+	return &http.Server{Addr: config.DynamicEnvs.HostAndPort, Handler: subrouter}
 }

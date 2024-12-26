@@ -22,6 +22,7 @@ type Config struct {
 type StaticConfig struct {
 	TimeFormat  string
 	SessionCookieName string
+	APIPrefix	string
 }
 
 var DynamicEnvs = initConfig()
@@ -29,6 +30,7 @@ var DynamicEnvs = initConfig()
 var StaticEnvs = StaticConfig{
 	TimeFormat: time.RFC3339,
 	SessionCookieName: "session_token",
+	APIPrefix: "/api/v1",
 }
 
 func initConfig() Config {

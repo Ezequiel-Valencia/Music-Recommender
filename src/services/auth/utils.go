@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/utils"
@@ -22,7 +23,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 			} else {
 				log.Error().Msg("User session is not valid!")
 			}
-			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s/login", config.StaticEnvs.APIPrefix), http.StatusTemporaryRedirect)
 			return
 		}
 
