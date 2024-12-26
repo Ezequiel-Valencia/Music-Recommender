@@ -63,7 +63,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	// Check User Credentials //
 	///////////////////////////
 	// if not valid
-	if !utils.IsStringAlphaNumeric(username) || !utils.IsStringAlphaNumeric(password) || !h.authTable.CorrectUsernameAndPassword(username, password) {
+	if !validUsernameAndPasswordChars(username, password) || !h.authTable.CorrectUsernameAndPassword(username, password) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
 	}
@@ -94,7 +94,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	var username string = r.FormValue("username")
 	var password string = r.FormValue("password")
-	if len(username) < 4 || len(password) < 8 || !utils.IsStringAlphaNumeric(username) || !utils.IsStringAlphaNumeric(password) {
+	if !validUsernameAndPasswordChars(username, password) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
 	}

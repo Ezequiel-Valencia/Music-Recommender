@@ -16,26 +16,32 @@ type AbstractDB struct {
 	db *sql.DB
 }
 
-func CreateSQLiteStorage() (*AbstractDB, *sql.DB) {
+func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-    "password=%s dbname=%s sslmode=disable",
-    config.Envs.DBHost, config.Envs.DBPort, config.Envs.DBUser, config.Envs.DBPasswd, config.Envs.DBName)
+		"password=%s dbname=%s sslmode=disable",
+		config.Envs.DBHost, config.Envs.DBPort, config.Envs.DBUser, config.Envs.DBPasswd, config.Envs.DBName)
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
+		if testMode{return nil, nil, err}
 		log.Fatal().Msg(err.Error())
 	}
-	createTables(db)
-	return &AbstractDB{db}, db
+	err = createTables(db, testMode)
+	if err != nil{return nil, nil, err}
+	return &AbstractDB{db}, db, nil
 }
-
 
 func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
 	sessionCookie, err := r.Cookie(config.Envs.SessionCookieName)
-	if err != nil{return User{}, err}
-	
+	if err != nil {
+		return User{}, err
+	}
+
 	var userID int
 	err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie.Value).Scan(&userID)
-	if err != nil {log.Err(err).Msg("Can't retrieve user ID from session."); return User{}, err}
+	if err != nil {
+		log.Err(err).Msg("Can't retrieve user ID from session.")
+		return User{}, err
+	}
 
 	var user_id int
 	var username, creation_source, creation_date, user_role, user_privileges string
@@ -53,4 +59,3 @@ func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
 		UserPrivileges: StringToUserPrivileges(user_privileges),
 	}, nil
 }
-

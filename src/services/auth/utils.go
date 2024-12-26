@@ -3,6 +3,7 @@ package auth
 import (
 	"music-recommender/config"
 	"music-recommender/db"
+	"music-recommender/utils"
 	"net/http"
 	"time"
 
@@ -12,13 +13,13 @@ import (
 
 type AuthHandlerFunc func(w http.ResponseWriter, r *http.Request, user db.User)
 
-func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc{
-	return func(w http.ResponseWriter, r *http.Request){
+func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		user, err := adb.GetUserFromSessionID(r)
-		if (err != nil || user.Username == "") {
-			if (err != nil){
+		if err != nil || user.Username == "" {
+			if err != nil {
 				log.Err(err).Msg("User is not authenticated!")
-			} else{
+			} else {
 				log.Error().Msg("User session is not valid!")
 			}
 			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
@@ -29,7 +30,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 	}
 }
 
-func hashPassword(password string)(string, error){
+func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
 }
@@ -64,5 +65,8 @@ func (h *Handler) storeUserSession(w http.ResponseWriter, username string) {
 
 func GetSessionUser() {}
 
-
-
+func validUsernameAndPasswordChars(username string, password string) bool {
+	lengthCheck := len(username) > 4 && len(username) < 20 && len(password) > 8 && len(password) < 50
+	charsUsedCheck := utils.IsStringAlphaNumeric(username) && utils.IsStringAlphaNumeric(password)
+	return lengthCheck && charsUsedCheck
+}

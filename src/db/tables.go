@@ -73,14 +73,16 @@ const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
 
 
 
-func createTables(db *sql.DB){
+func createTables(db *sql.DB, testMode bool) error{
 	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable, createRankingTable, createTodaysRankingTable}
 	for _, v := range tables{
 		_, err := db.Exec(v)
 		if err != nil{
+			if testMode{return err}
 			log.Fatal().AnErr("err", err).Msg("Table Creation Error")
 		}
 	}
+	return nil
 }
 
 
