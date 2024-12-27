@@ -16,7 +16,7 @@ Useful in case a special day is made where previous songs can be ranked again
 (ex. Christmas songs on christmas, where instead of three it's every submitters favorite christmas song)
 */
 const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
-	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	insert_date TIMESTAMP NOT NULL,
 	name TEXT,
 	songURL TEXT,
@@ -35,7 +35,7 @@ being a reference to a music ID
 */
 
 const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranking (
-	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	date_ranked TIMESTAMP NOT NULL,
 	ranking TEXT
 )`
@@ -54,7 +54,7 @@ const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRankin
 // User Identity instead of serial for UID's cause it's SQL compliant
 // https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
 const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
-	user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	username TEXT,
 	password_hash TEXT,
 	subject_identifier TEXT,
@@ -65,14 +65,14 @@ const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 )`
 
 const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
-	entry INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	entry INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	user_id INTEGER references users(user_id) ON DELETE CASCADE,
 	session_id TEXT
 )`
 
 
 
-
+// 0 for table primary key is special value, will not be used and can be assumed as NULL
 func CreateTables(db *sql.DB, testMode bool) error{
 	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable, createRankingTable, createTodaysRankingTable}
 	for _, v := range tables{
