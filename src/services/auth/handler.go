@@ -75,11 +75,13 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 	sessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
 	if err != nil {
-		http.Error(w, "Can't logout", 500)
+		http.Error(w, "Can't logout", http.StatusUnauthorized)
+		return
 	}
 	err = h.authTable.RemoveSessionTokens(user, sessionCookie.Value)
 	if err != nil {
-		http.Error(w, "Can't logout", 500)
+		http.Error(w, "Can't logout", http.StatusBadRequest)
+		return
 	}
 
 	http.SetCookie(w, &http.Cookie{

@@ -70,6 +70,7 @@ func ResetTestDB() {
 	if err != nil {
 		log.Fatalf("Could not reset test DB: %s", err)
 	}
+	db.CreateTables(dbPointer, true)
 }
 
 // If not Alpha-Numeric compliant, UTF-32 characters are generated.

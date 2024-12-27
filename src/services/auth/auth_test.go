@@ -67,6 +67,7 @@ func TestLogin(t *testing.T) {
 	adb, dbPointer := t_utils.GetTestDB()
 	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
 	handler := NewHandler(at)
+
 	hp, _ := hashPassword("password123")
 	handler.authTable.CreateUser("Ezequiel", hp, "", db.LocalUserCreationSource.String())
 
@@ -102,3 +103,61 @@ func TestLogin(t *testing.T) {
 
 	t_utils.ResetTestDB()
 }
+
+const (
+	noCookie	int = iota
+	inValidCookie
+	validCookie
+)
+
+var logOutTestCases = []struct{
+	testName	string
+	cookieState		int
+	statusCode  int
+	bodResponse string
+}{
+	{
+		testName: "No Cookie, No Auth", bodResponse: "Can't logout\n", cookieState: noCookie, 
+		statusCode: http.StatusUnauthorized,
+	},
+	{
+		testName: "Invalid Session Cookie", bodResponse: "Can't logout\n", cookieState: inValidCookie,
+		statusCode: http.StatusBadRequest,
+	},
+	{testName: "Valid Cookie", cookieState: validCookie, statusCode: http.StatusOK},
+}
+
+
+func TestLogOut(t *testing.T){
+	adb, dbPointer := t_utils.GetTestDB()
+	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
+	handler := NewHandler(at)
+
+
+	req := httptest.NewRequest(http.MethodPost, "/logout", bytes.NewReader([]byte("username=Ezequiel&password=password123")))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	handler.register(rr, req)
+	sessionCookie := rr.Result().Cookies()[0]
+
+	for _, tc := range logOutTestCases{
+		var testRecorder = httptest.NewRecorder()
+		var request = httptest.NewRequest("POST", "/logout", bytes.NewBufferString(""))
+		switch tc.cookieState{
+		case inValidCookie:
+			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: t_utils.GenerateRandomRuneString(14, true)})
+		case validCookie:
+			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: sessionCookie.Value})
+		case noCookie:
+		}
+
+		log.Print(tc.testName)
+		handler.logout(testRecorder, request, db.User{UserId: 1})
+		assert.Equal(t, tc.statusCode, testRecorder.Code)
+		bod, _ := io.ReadAll(testRecorder.Body)
+		assert.Equal(t, tc.bodResponse, string(bod))
+	}
+
+	t_utils.ResetTestDB()
+}
+

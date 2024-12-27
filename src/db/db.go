@@ -27,7 +27,7 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 		}
 		log.Fatal().Msg(err.Error())
 	}
-	err = createTables(db, testMode)
+	err = CreateTables(db, testMode)
 	if err != nil {
 		return nil, nil, err
 	}

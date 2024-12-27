@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"music-recommender/config"
 	"music-recommender/db"
 	"time"
@@ -83,7 +85,13 @@ func (mdb AuthTable) GenerateAndStoreSessionID(user db.User) (string, error) {
 }
 
 func (at AuthTable) RemoveSessionTokens(user db.User, sessionid string) error {
-	_, err := at.db.Exec("DELETE FROM sessions WHERE user_id = $1 AND session_id = $2", user.UserId, sessionid)
+	res, err := at.db.Exec("DELETE FROM sessions WHERE user_id = $1 AND session_id = $2", user.UserId, sessionid)
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		errString := fmt.Sprintf("deleted 0 sessions for user %s", user.Username)
+		log.Error().Msg(errString)
+		return errors.New(errString)
+	}
 	return err
 }
 
