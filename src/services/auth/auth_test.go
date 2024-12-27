@@ -230,6 +230,58 @@ func TestDeleteUser(t *testing.T){
 	assert.Equal(t, 0, user.UserId)
 }
 
+
+const (
+	noSession int	= iota
+	invalidSession
+	validSession
+)
+
+var requireAuthTestCases = []struct {
+	testCase string
+	sessionState int
+}{
+	{
+		"No Session",
+		noSession,
+	},
+	{
+		"Invalid Session",
+		invalidSession,
+	},
+	{
+		"Valid Session",
+		validSession,
+	},
+}
+
+func TestRequireAuth(t *testing.T){
+	handler := createAuthHandler()
+
+	handler.authTable.CreateUser("Ezequiel", "pw", "", db.LocalUserCreationSource.String())
+	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
+	session, _ := handler.authTable.GenerateAndStoreSessionID(user)
+	endPointWithAuth := RequireAuth(handler.deleteUser, handler.authTable.AbstractDB)
+	for _, tc := range requireAuthTestCases{
+		request := httptest.NewRequest("POST", "/api/v1/delete", nil)
+		switch tc.sessionState{
+		case noSession:
+		case invalidSession:
+			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: t_utils.GenerateRandomRuneString(20, true)})
+		case validSession:
+			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: session})
+		}
+
+		rr := httptest.NewRecorder()
+		endPointWithAuth(rr, request)
+		if (tc.sessionState != validCookie){
+			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
+		} else{
+			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
+		}
+	}
+}
+
 func createAuthHandler() *Handler{
 	adb, dbPointer := t_utils.GetTestDB()
 	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
