@@ -43,12 +43,13 @@ func (h *Handler) storeUserSession(w http.ResponseWriter, username string) {
 		http.Error(w, "Unable to login user.", http.StatusBadRequest)
 	}
 
-	var oneHundredDays time.Duration = 100 * (time.Hour * 24)
+	var oneHundred50Days time.Duration = 150 * (time.Hour * 24)
 
+	// Long enough that users don't have to login every time, but also not to long where someone attempting brute force can get in.
 	http.SetCookie(w, &http.Cookie{
 		Name:     config.StaticEnvs.SessionCookieName,
 		Value:    sessionid,
-		Expires:  time.Now().Add(oneHundredDays),
+		Expires:  time.Now().Add(oneHundred50Days),
 		HttpOnly: true, // Prevents malicious
 		// Path: "/", // Accessible on all paths
 		// Domain: "go-server-domain",
