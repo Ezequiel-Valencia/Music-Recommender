@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/db/auth_table"
@@ -71,7 +70,6 @@ func TestLogin(t *testing.T) {
 	handler.authTable.CreateUser("Ezequiel", hp, "", db.LocalUserCreationSource.String())
 
 	for _, tc := range invalidUsernameOrPasswordTestCases {
-		log.Print(tc.testCase + " Test Case")
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rr := httptest.NewRecorder()
 		handler.login(rr, tc.request)
@@ -83,7 +81,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	// Doesn't matter if session is valid. If the cookie is there don't allow login.
-	log.Print("Already Logged In Failure Test Case")
+	// Already Logged In Failure Test Case
 	request := httptest.NewRequest("POST", "/api/v1/login", bytes.NewBufferString("username=Ezequiel&password=password123"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: "anything"})
@@ -93,7 +91,7 @@ func TestLogin(t *testing.T) {
 	bod, _ := io.ReadAll(rr.Body)
 	assert.Equal(t, "User already logged in.\n", string(bod))
 
-	log.Print("Valid Credentials Test Case")
+	// Valid Credentials Test Case
 	request = httptest.NewRequest("POST", "/api/v1/login", bytes.NewBufferString("username=Ezequiel&password=password123"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr = httptest.NewRecorder()
@@ -146,12 +144,90 @@ func TestLogOut(t *testing.T){
 		case noCookie:
 		}
 
-		log.Print(tc.testName)
 		handler.logout(testRecorder, request, db.User{UserId: 1})
 		assert.Equal(t, tc.statusCode, testRecorder.Code)
 		bod, _ := io.ReadAll(testRecorder.Body)
 		assert.Equal(t, tc.bodResponse, string(bod))
 	}
+}
+
+
+var registerTestCases = []struct {
+	testCase string
+	request  *http.Request
+	code	 int
+	expectedResponse	string
+}{
+	{
+		"Invalid Username Chars",
+		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString(fmt.Sprintf("username=Ez@%s&password=password123", t_utils.GenerateRandomRuneString(5, false)))),
+		http.StatusNotAcceptable,
+		"Invalid username/password\n",
+	},
+	{
+		"Invalid Password Chars",
+		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString(fmt.Sprintf("username=Ezequiel&password=password123@%s", t_utils.GenerateRandomRuneString(5, false)))),
+		http.StatusNotAcceptable,
+		"Invalid username/password\n",
+	},
+	{
+		"User Already Exists",
+		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123")),
+		http.StatusConflict,
+		"User already exists\n",
+	},
+	{
+		"Create User, All Good",
+		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel2&password=password123")),
+		http.StatusOK,
+		"",
+	},
+}
+
+
+func TestRegister(t *testing.T){
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
+
+
+	hp, _ := hashPassword("password123")
+	handler.authTable.CreateUser("Ezequiel", hp, "", db.LocalUserCreationSource.String())
+
+	for _, tc := range registerTestCases {
+		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rr := httptest.NewRecorder()
+		handler.register(rr, tc.request)
+
+		assert.Equal(t, tc.code, rr.Code)
+		if rr.Code == http.StatusOK{
+			session := rr.Result().Header.Get("Set-Cookie")
+			assert.NotEqual(t, "", session)
+
+			user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
+			assert.Equal(t, 2, user.UserId) // Second user created
+		}
+
+		bod, _ := io.ReadAll(rr.Body)
+		assert.Equal(t, tc.expectedResponse, string(bod))
+	}
+
+}
+
+func TestDeleteUser(t *testing.T){
+	handler := createAuthHandler()
+	
+	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+
+	handler.register(rr, request)
+	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
+	assert.Equal(t, 1, user.UserId)
+	assert.Equal(t, "Ezequiel", user.Username)
+
+	handler.deleteUser(rr, request, user)
+	user = handler.authTable.GetUserStructFromUsername("Ezequiel")
+	assert.Equal(t, 0, user.UserId)
 }
 
 func createAuthHandler() *Handler{
