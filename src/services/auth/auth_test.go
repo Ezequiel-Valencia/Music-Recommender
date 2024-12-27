@@ -64,9 +64,8 @@ func TestMain(m *testing.M) {
 
 // By Having Valid User in this Test, ensures that all failures are because of their respective reasons and not because there isn't a valid user to begin with
 func TestLogin(t *testing.T) {
-	adb, dbPointer := t_utils.GetTestDB()
-	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
-	handler := NewHandler(at)
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
 
 	hp, _ := hashPassword("password123")
 	handler.authTable.CreateUser("Ezequiel", hp, "", db.LocalUserCreationSource.String())
@@ -100,8 +99,6 @@ func TestLogin(t *testing.T) {
 	rr = httptest.NewRecorder()
 	handler.login(rr, request)
 	assert.Equal(t, http.StatusOK, rr.Code)
-
-	t_utils.ResetTestDB()
 }
 
 const (
@@ -129,10 +126,8 @@ var logOutTestCases = []struct{
 
 
 func TestLogOut(t *testing.T){
-	adb, dbPointer := t_utils.GetTestDB()
-	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
-	handler := NewHandler(at)
-
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
 
 	req := httptest.NewRequest(http.MethodPost, "/logout", bytes.NewReader([]byte("username=Ezequiel&password=password123")))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -157,7 +152,11 @@ func TestLogOut(t *testing.T){
 		bod, _ := io.ReadAll(testRecorder.Body)
 		assert.Equal(t, tc.bodResponse, string(bod))
 	}
+}
 
-	t_utils.ResetTestDB()
+func createAuthHandler() *Handler{
+	adb, dbPointer := t_utils.GetTestDB()
+	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
+	return NewHandler(at)
 }
 
