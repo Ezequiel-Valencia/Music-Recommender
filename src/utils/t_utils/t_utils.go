@@ -55,14 +55,16 @@ func GetTestDB() (*db.AbstractDB, *sql.DB) {
 }
 
 func TearDownTestDB() {
-	dbPointer.Close()
-	adb = nil
-	dbPointer = nil
-	if err := pool.Purge(resource); err != nil {
-		log.Fatalf("Could not purge resource: %s", err)
+	if (dbPointer != nil && adb != nil && pool != nil && resource != nil){
+		dbPointer.Close()
+		adb = nil
+		dbPointer = nil
+		if err := pool.Purge(resource); err != nil {
+			log.Fatalf("Could not purge resource: %s", err)
+		}
+		pool = nil
+		resource = nil
 	}
-	pool = nil
-	resource = nil
 }
 
 func ResetTestDB() {
