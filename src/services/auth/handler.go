@@ -68,7 +68,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.storeUserSession(w, username)
+	h.storeUserSessionAsCookie(w, username)
 
 }
 
@@ -78,7 +78,9 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 		http.Error(w, "Can't logout", http.StatusUnauthorized)
 		return
 	}
-	err = h.authTable.RemoveSessionTokens(user, sessionCookie.Value)
+	var decodedCookie string = ""
+	config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedCookie)
+	err = h.authTable.RemoveSessionTokens(user, decodedCookie)
 	if err != nil {
 		http.Error(w, "Can't logout", http.StatusBadRequest)
 		return
@@ -115,5 +117,5 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.authTable.CreateUser(username, hashedPassword, "", db.LocalUserCreationSource.String())
-	h.storeUserSession(w, username)
+	h.storeUserSessionAsCookie(w, username)
 }

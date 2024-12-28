@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 )
 
@@ -26,6 +27,8 @@ type StaticConfig struct {
 }
 
 var DynamicEnvs = initConfig()
+// Cookie Token should be 64 bytes, https://github.com/gorilla/securecookie
+var SecureCookie *securecookie.SecureCookie;
 
 var StaticEnvs = StaticConfig{
 	TimeFormat: time.RFC3339,
@@ -34,6 +37,8 @@ var StaticEnvs = StaticConfig{
 }
 
 func initConfig() Config {
+	cookie_token := getEnv("COOKIE_SIGNING_KEY", "insecure", false)
+	SecureCookie = securecookie.New([]byte(cookie_token), nil)
 	return Config{
 		HostAndPort:       getEnv("PUBLIC_HOST", "localhost", true) + ":" + getEnv("PUBLIC_PORT", "8080", true),
 		DBPort:            getEnvInt("DB_PORT", 5432, true),
@@ -53,7 +58,7 @@ func getEnvInt(key string, def int, allowForDefault bool) int {
 		return def
 	}
 	log.Error().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
-	return -1
+	return def
 }
 
 func getEnv(key string, def string, allowForDefault bool) string {
@@ -64,5 +69,5 @@ func getEnv(key string, def string, allowForDefault bool) string {
 		return def
 	}
 	log.Error().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
-	return ""
+	return def
 }

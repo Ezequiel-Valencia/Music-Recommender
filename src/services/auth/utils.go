@@ -16,17 +16,29 @@ type AuthHandlerFunc func(w http.ResponseWriter, r *http.Request, user db.User)
 
 func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user, err := adb.GetUserFromSessionID(r)
-		if err != nil || user.Username == "" {
-			if err != nil {
-				log.Err(err).Msg("User is not authenticated!")
-			} else {
-				log.Error().Msg("User session is not valid!")
+		// Do you even have a session cookie?
+		encodedSessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
+		if err != nil {
+			http.Redirect(w, r, fmt.Sprintf("%s/login", config.StaticEnvs.APIPrefix), http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Is your session cookie valid, and have a user tied to it?
+		var sessionCookie string
+		config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, 
+			encodedSessionCookie.Value, &sessionCookie)
+		user, err := adb.GetUserFromSessionID(sessionCookie)
+		if err != nil || user.Username == "" || sessionCookie == "" {
+			if sessionCookie == ""{
+				log.Error().Msg("Invalid Signature for Cookie")
+			} else{
+				log.Error().Msg("No user for session")
 			}
 			http.Redirect(w, r, fmt.Sprintf("%s/login", config.StaticEnvs.APIPrefix), http.StatusTemporaryRedirect)
 			return
 		}
 
+		// If all is true continue
 		handlerFunc(w, r, user)
 	}
 }
@@ -36,8 +48,10 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func (h *Handler) storeUserSession(w http.ResponseWriter, username string) {
+// Stores an unencoded session within the DB, and sends a signed version to the user
+func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username string) {
 	sessionid, err := h.authTable.GenerateAndStoreSessionID(h.authTable.GetUserStructFromUsername(username))
+	signedSession, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, sessionid)
 	// csrfToken := ""
 	if err != nil {
 		http.Error(w, "Unable to login user.", http.StatusBadRequest)
@@ -48,9 +62,11 @@ func (h *Handler) storeUserSession(w http.ResponseWriter, username string) {
 	// Long enough that users don't have to login every time, but also not to long where someone attempting brute force can get in.
 	http.SetCookie(w, &http.Cookie{
 		Name:     config.StaticEnvs.SessionCookieName,
-		Value:    sessionid,
+		Value:    signedSession,
 		Expires:  time.Now().Add(oneHundred50Days),
 		HttpOnly: true, // Prevents malicious
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 		// Path: "/", // Accessible on all paths
 		// Domain: "go-server-domain",
 	})

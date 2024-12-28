@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/db/auth_table"
@@ -132,6 +133,7 @@ func TestLogOut(t *testing.T){
 	rr := httptest.NewRecorder()
 	handler.register(rr, req)
 	sessionCookie := rr.Result().Cookies()[0]
+	
 
 	for _, tc := range logOutTestCases{
 		var testRecorder = httptest.NewRecorder()
@@ -215,6 +217,7 @@ func TestRegister(t *testing.T){
 
 func TestDeleteUser(t *testing.T){
 	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
 	
 	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -233,7 +236,9 @@ func TestDeleteUser(t *testing.T){
 
 const (
 	noSession int	= iota
-	invalidSession
+	invalidSessionNotSigned
+	invalidSignedName
+	invalidCookieName
 	validSession
 )
 
@@ -247,7 +252,15 @@ var requireAuthTestCases = []struct {
 	},
 	{
 		"Invalid Session",
-		invalidSession,
+		invalidSessionNotSigned,
+	},
+	{
+		"Valid Signature for session_token With Different Signed Name",
+		invalidSignedName,
+	},
+	{
+		"Valid Signature But for Cookie With Different Name",
+		invalidCookieName,
 	},
 	{
 		"Valid Session",
@@ -257,27 +270,36 @@ var requireAuthTestCases = []struct {
 
 func TestRequireAuth(t *testing.T){
 	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
 
 	handler.authTable.CreateUser("Ezequiel", "pw", "", db.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
-	session, _ := handler.authTable.GenerateAndStoreSessionID(user)
+	unEncodedSession, _ := handler.authTable.GenerateAndStoreSessionID(user)
 	endPointWithAuth := RequireAuth(handler.deleteUser, handler.authTable.AbstractDB)
 	for _, tc := range requireAuthTestCases{
 		request := httptest.NewRequest("POST", "/api/v1/delete", nil)
 		switch tc.sessionState{
 		case noSession:
-		case invalidSession:
+		case invalidSessionNotSigned:
 			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: t_utils.GenerateRandomRuneString(20, true)})
+		case invalidSignedName:
+			cookie, _ := config.SecureCookie.Encode("WrongName", unEncodedSession)
+			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: cookie})
+		case invalidCookieName:
+			cookie, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, unEncodedSession)
+			request.AddCookie(&http.Cookie{Name: "WrongName", Value: cookie})
 		case validSession:
-			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: session})
+			cookie, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, unEncodedSession)
+			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: cookie})
 		}
 
 		rr := httptest.NewRecorder()
 		endPointWithAuth(rr, request)
-		if (tc.sessionState != validCookie){
-			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
-		} else{
+		log.Print(tc.testCase)
+		if (tc.sessionState == validSession){
 			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
+		} else{
+			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
 		}
 	}
 }

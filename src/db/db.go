@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"music-recommender/config"
-	"net/http"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -34,15 +33,11 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 	return &AbstractDB{db}, db, nil
 }
 
-func (abd AbstractDB) GetUserFromSessionID(r *http.Request) (User, error) {
-	sessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
-	if err != nil {
-		return User{}, err
-	}
-
+func (abd AbstractDB) GetUserFromSessionID(sessionCookie string) (User, error) {
+	
 	var userID int
-	err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie.Value).Scan(&userID)
-	if err != nil {
+	err := abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie).Scan(&userID)
+	if err != nil || err == sql.ErrNoRows {
 		log.Err(err).Msg("Can't retrieve user ID from session.")
 		return User{}, err
 	}
