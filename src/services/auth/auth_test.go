@@ -239,6 +239,7 @@ const (
 	invalidSessionNotSigned
 	invalidSignedName
 	invalidCookieName
+	validSessionNoUser
 	validSession
 )
 
@@ -261,6 +262,10 @@ var requireAuthTestCases = []struct {
 	{
 		"Valid Signature But for Cookie With Different Name",
 		invalidCookieName,
+	},
+	{
+		"Valid Signature But No User At the End",
+		validSessionNoUser,
 	},
 	{
 		"Valid Session",
@@ -288,6 +293,9 @@ func TestRequireAuth(t *testing.T){
 		case invalidCookieName:
 			cookie, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, unEncodedSession)
 			request.AddCookie(&http.Cookie{Name: "WrongName", Value: cookie})
+		case validSessionNoUser:
+			cookie, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, t_utils.GenerateRandomRuneString(20, true))
+			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: cookie})
 		case validSession:
 			cookie, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, unEncodedSession)
 			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: cookie})

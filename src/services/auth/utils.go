@@ -29,7 +29,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 			encodedSessionCookie.Value, &sessionCookie)
 		user, err := adb.GetUserFromSessionID(sessionCookie)
 		if err != nil || user.Username == "" || sessionCookie == "" {
-			if sessionCookie == ""{
+			if sessionCookie == "" {
 				log.Error().Msg("Invalid Signature for Cookie")
 			} else{
 				log.Error().Msg("No user for session")
