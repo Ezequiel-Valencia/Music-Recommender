@@ -32,11 +32,11 @@ func NewHandler(mdb *auth_table.AuthTable) *Handler {
 }
 
 func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
-	router.HandleFunc("/user", RequireAuth(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods("GET")
-	router.HandleFunc("/user", RequireAuth(h.deleteUser, h.authTable.AbstractDB)).Methods("DELETE")
-	router.HandleFunc("/login", h.login).Methods("POST")
-	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods("POST")
-	router.HandleFunc("/register", h.register).Methods("POST")
+	router.HandleFunc("/user", RequireAuth(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods(http.MethodGet)
+	router.HandleFunc("/user", RequireAuth(h.deleteUser, h.authTable.AbstractDB)).Methods(http.MethodDelete)
+	router.HandleFunc("/login", h.login).Methods(http.MethodPost)
+	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods(http.MethodPost)
+	router.HandleFunc("/register", h.register).Methods(http.MethodPost)
 }
 
 func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User) {

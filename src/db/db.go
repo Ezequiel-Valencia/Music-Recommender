@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"music-recommender/config"
 	"time"
@@ -33,12 +34,20 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 	return &AbstractDB{db}, db, nil
 }
 
-func (abd AbstractDB) GetUserFromSessionID(sessionCookie string) (User, error) {
-	
+func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken string, requiresCSRF bool) (User, error) {
+	if sessionCookie == "" {
+		log.Error().Msg("Invalid Signature for Cookie")
+		return User{}, errors.New("invalid session cookie")
+	} 
 	var userID int
-	err := abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie).Scan(&userID)
+	var err error
+	if (requiresCSRF){
+		err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1 AND csrf_token = $2", sessionCookie, csrfToken).Scan(&userID)
+	} else{
+		err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie).Scan(&userID)
+	}
 	if err != nil || err == sql.ErrNoRows {
-		log.Err(err).Msg("Can't retrieve user ID from session.")
+		log.Error().Msg("Can't retrieve user ID from session.")
 		return User{}, err
 	}
 

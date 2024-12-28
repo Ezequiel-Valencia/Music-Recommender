@@ -71,17 +71,18 @@ func (at AuthTable) CorrectUsernameAndPassword(username string, password string)
 	return err == nil
 }
 
-func (mdb AuthTable) GenerateAndStoreSessionID(user db.User) (string, error) {
+func (mdb AuthTable) GenerateAndStoreSessionID(user db.User) (string, string, error) {
 	newToken := GenerateSecureToken(50)
-	const executeString = `INSERT INTO sessions(user_id, session_id) 
-	VALUES($1, $2)`
-	_, err := mdb.db.Exec(executeString, user.UserId, newToken)
+	csrfToken := GenerateSecureToken(50)
+	const executeString = `INSERT INTO sessions(user_id, session_id, csrf_token) 
+	VALUES($1, $2, $3)`
+	_, err := mdb.db.Exec(executeString, user.UserId, newToken, csrfToken)
 	if err != nil {
 		log.Err(err).Msg("DB Error")
-		return "", err
+		return "", "", err
 	}
 
-	return newToken, nil
+	return newToken, csrfToken, nil
 }
 
 func (at AuthTable) RemoveSessionTokens(user db.User, sessionid string) error {

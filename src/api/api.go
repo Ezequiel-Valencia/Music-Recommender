@@ -20,10 +20,7 @@ type APIServer struct {
 }
 
 func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
-	// csrfMiddleware := csrf.Protect([]byte("secret_key"))
 	router := mux.NewRouter()
-	// http.Handle("/", csrfMiddleware(router)) // Sets the main router to handle everything with csrfMiddleware
-
 	subrouter := router.PathPrefix(config.StaticEnvs.APIPrefix).Subrouter()
 
 	anonymous_user_handler := daily_user.NewHandler(ranking_table.CreateRankingTableDriver(db))

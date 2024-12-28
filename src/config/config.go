@@ -23,10 +23,13 @@ type Config struct {
 type StaticConfig struct {
 	TimeFormat  string
 	SessionCookieName string
+	CSRFCookieName	string
+	CSRFHeaderName string
 	APIPrefix	string
 }
 
 var DynamicEnvs = initConfig()
+
 // Cookie Token should be 64 bytes, https://github.com/gorilla/securecookie
 var SecureCookie *securecookie.SecureCookie;
 
@@ -34,11 +37,16 @@ var StaticEnvs = StaticConfig{
 	TimeFormat: time.RFC3339,
 	SessionCookieName: "session_token",
 	APIPrefix: "/api/v1",
+	CSRFCookieName: "csrf_token",
+	CSRFHeaderName: "X-CSRF-Token",
 }
 
 func initConfig() Config {
+	// Signed Cookies, and CSRF Setup
 	cookie_token := getEnv("COOKIE_SIGNING_KEY", "insecure", false)
 	SecureCookie = securecookie.New([]byte(cookie_token), nil)
+
+	// Dynamic Config Setup
 	return Config{
 		HostAndPort:       getEnv("PUBLIC_HOST", "localhost", true) + ":" + getEnv("PUBLIC_PORT", "8080", true),
 		DBPort:            getEnvInt("DB_PORT", 5432, true),

@@ -67,7 +67,8 @@ const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
 	entry INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	user_id INTEGER references users(user_id) ON DELETE CASCADE,
-	session_id TEXT
+	session_id TEXT NOT NULL,
+	csrf_token TEXT NOT NULL
 )`
 
 
