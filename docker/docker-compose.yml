@@ -1,6 +1,8 @@
 services:
   threemix:
     container_name: threemix
+    depends_on:
+      - db
     build: ../
     develop:
       watch:
@@ -9,12 +11,28 @@ services:
           target: /app/src
     security_opt:
       - no-new-privileges:true
+    environment:
+      DB_HOST: db
+      PUBLIC_HOST: "0.0.0.0" # Internal to the container, it should be on all interfaces
     networks:
         - threemix
-    volumes:
-      - ../src/music.db:/app/storage
     ports:
       - 127.0.0.1:8080:8080
+  
+  db:
+    image: postgres
+    container_name: threemixDB
+    environment:
+      POSTGRES_PASSWORD: passwd
+    ports:
+      - 127.0.0.1:5432:5432
+    security_opt:
+      - no-new-privileges:true
+    
+    # Switch attach to true to get DB logging.
+    attach: false
+    networks:
+        - threemix
 
 networks:
     threemix:
