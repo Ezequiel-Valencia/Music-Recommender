@@ -82,7 +82,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		Value:    signedSession,
 		Expires:  time.Now().Add(oneHundred50Days),
 		HttpOnly: true, // Prevents malicious
-		Secure:   true,
+		Secure:   config.DynamicEnvs.CookieDomain != "", // if theres a domain, secure transfer only
 		SameSite: http.SameSiteStrictMode,
 		Path: "/", // Accessible on all paths
 		Domain: config.DynamicEnvs.CookieDomain,
@@ -93,7 +93,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		Value: signedCSRF,
 		Expires: time.Now().Add(oneHundred50Days),
 		HttpOnly: false, // Needs to be accessed on the client side JS, and put as the X-CSRF-Token
-		Secure: true,
+		Secure: config.DynamicEnvs.CookieDomain != "",
 		SameSite: http.SameSiteStrictMode,
 		Path: "/", // Accessible on all paths
 		Domain: config.DynamicEnvs.CookieDomain,
