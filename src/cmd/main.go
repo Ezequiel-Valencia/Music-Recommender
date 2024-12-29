@@ -1,22 +1,21 @@
 package main
 
 import (
-	"fmt"
 	api "music-recommender/api"
 	"music-recommender/db"
+	"net/http"
 
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	fmt.Println("Hello World!")
-	log.Info().Msg("Logging Info")
+	log.Info().Msg("Starting Server")
 
-	dbPointer := db.CreateSQLiteStorage()
+	abstractDB, dbPointer, _ := db.CreateDB(false)
 
-	var server *api.APIServer = api.CreateMainServer(":8080", dbPointer) //Pointer to the API server struct
-	if err := server.Run(); err != nil {
-		log.Fatal().AnErr("error", err)
+	var server *http.Server = api.CreateMainServer(dbPointer, abstractDB) //Pointer to the API server struct
+	if err := server.ListenAndServe(); err != nil {
+		log.Fatal().AnErr("error", err).Msg("Server can't start.")
 	}
-
+	log.Info().Msg("Server has stopped.")
 }

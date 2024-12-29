@@ -1,7 +1,9 @@
-package music_curator
+package curator_service
 
 import (
 	"music-recommender/db"
+	"music-recommender/db/music_table"
+	"music-recommender/services/auth"
 	"music-recommender/types"
 	"music-recommender/utils"
 	"net/http"
@@ -11,25 +13,20 @@ import (
 )
 
 type Handler struct{
-	musicDB *db.MusicDB
+	musicDB *music_table.MusicTable
 }
 
 
-func NewHandler(mdb *db.MusicDB) *Handler{
+func NewHandler(mdb *music_table.MusicTable) *Handler{
 	return &Handler{mdb}
 }
 
 
 func (h *Handler) RegisterCuratorRoutes(router *mux.Router){
-	router.HandleFunc("/login", h.login).Methods("POST")
-	router.HandleFunc("/submitMusic", h.submitMusic).Methods("POST")
+	router.HandleFunc("/submitMusic", auth.RequireAuth(h.submitMusic, h.musicDB.AbstractDB)).Methods("POST")
 }
 
-func (h *Handler) login(w http.ResponseWriter, r *http.Request){
-	// provide credentials to gain an authentication token
-}
-
-func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request){
+func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user db.User){
 	// submit music to be chosen to the data base.
 	var submitSong types.SubmitSong
 	err := utils.DecodeJSONBody(w, r, &submitSong)

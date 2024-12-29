@@ -2,123 +2,69 @@ package db
 
 import (
 	"database/sql"
-	"music-recommender/types"
+	"errors"
+	"fmt"
+	"music-recommender/config"
+	"time"
 
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3" // Used to import the side effects of a package. Allows for SQlit3 Driver to be known
 	"github.com/rs/zerolog/log"
 )
 
-
-// Good enough table SCHEMA for now
-
-/*
-rank_id is a comma separated list of the foreign keys associated with ranking table
-
-num_ranks is the number of times a specific song has been ranked.
-Useful in case a special day is made where previous songs can be ranked again 
-(ex. Christmas songs on christmas, where instead of three it's every submitters favorite christmas song)
-*/
-const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
-	id INTEGER NOT NULL PRIMARY KEY,
-	insert_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	name TEXT,
-	songURL TEXT,
-	genre TEXT,
-	subgenre TEXT,
-	description TEXT,
-	submitterID,
-	rank_id TEXT
-	num_ranks INTEGER,
-	FOREIGN KEY (submitterID) REFERENCES users(id)
-)`
-/*
-Ranking can include multiple songs that have been ranked, thus it will be
-a string that has specific format easy for tokenization, with each token
-being a reference to a music ID
-*/
-
-const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranking (
-	id INTEGER NOT NULL PRIMARY KEY,
-	date_ranked DATETIME NOT NULL,
-	ranking TEXT
-)`
-
-
-/*
-Everyday take the total of yesterdays music choices (if there is any)
-Sum up the choices and put them in the ranking table as appropriate
-Clean the table, and place the new songs which will be ranked within the table 
-*/
-const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRanking (
-	songID INTEGER,
-	name TEXT,
-	num_votes INTEGER,
-	FOREIGN KEY (songID) REFERENCES music(id)
-)`
-
-const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
-	id INTEGER NOT NULL PRIMARY KEY,
-)`
-
-
-type MusicDB struct {
+type AbstractDB struct {
 	db *sql.DB
 }
 
-
-func CreateSQLiteStorage() *MusicDB{
-	db, err := sql.Open("sqlite3", "./music.db")
+func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		config.DynamicEnvs.DBHost, config.DynamicEnvs.DBPort, config.DynamicEnvs.DBUser, config.DynamicEnvs.DBPasswd, config.DynamicEnvs.DBName)
+	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
+		if testMode {
+			return nil, nil, err
+		}
 		log.Fatal().Msg(err.Error())
 	}
-	_, err = db.Exec(createUserTable)
+	err = CreateTables(db, testMode)
 	if err != nil {
-		log.Fatal().AnErr("Create user table fail", err)
+		return nil, nil, err
 	}
-	_, err = db.Exec(createMusicTable)
-	if err != nil {
-		log.Fatal().Msg(err.Error())
+	return &AbstractDB{db}, db, nil
+}
+
+// The session and CSRF tokens should be decoded
+func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken string, requiresCSRF bool) (User, error) {
+	if sessionCookie == "" {
+		log.Error().Msg("Invalid Signature for Cookie")
+		return User{}, errors.New("invalid session cookie")
+	} 
+	var userID int
+	var err error
+	if (requiresCSRF){
+		err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1 AND csrf_token = $2", sessionCookie, csrfToken).Scan(&userID)
+	} else{
+		err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie).Scan(&userID)
 	}
-	db.Exec(createRankingTable)
-	db.Exec(createTodaysRankingTable)
-	mdb := MusicDB{db}
-	return &mdb
-}
-
-func (mdb MusicDB) CreateNewCurator(musicEntry MusicEntry) error{
-	return nil
-}
-
-func (mdb MusicDB) InsertNewSong(musicEntry *types.SubmitSong){
-	const executeString = `INSERT INTO music(name, songURL, genre, subgenre, description, submitterID) 
-	VALUES(?, ?, ?, ?, ?, ?)`
-	_, err := mdb.db.Exec(executeString, musicEntry.Name, musicEntry.SongURL, 
-		musicEntry.Genre, musicEntry.Subgenre, musicEntry.Description, 20)
-	handleMusicDBError(err)
-}
-
-func (mdb MusicDB) GetTodaysRanking() *types.TodaysRankingPayload{
-	res := mdb.db.QueryRow("SELECT * FROM todaysRanking WHERE insert_date = ?")
-	res.Scan()
-	return &types.TodaysRankingPayload{}
-}
-
-func (mdb MusicDB) UpdateTodaysRanking(submitVote types.SubmitVotePayload){
-	_, err := mdb.db.Exec("UPDATE todaysRanking SET num_votes = num_votes + 1 WHERE name = ?", 
-							submitVote.SongName)
-	handleMusicDBError(err)
-}
-
-func (mdb MusicDB) GetTodaysMusic() *types.TodaysMusicPayload{
-	return &types.TodaysMusicPayload{}
-}
-
-func (mdb MusicDB) GetCalendarsMusic() *types.CalendarPayload{
-	return &types.CalendarPayload{}
-}
-
-func handleMusicDBError(err error){
-	if err != nil{
-		log.Error().AnErr("musicDB", err)
+	if err != nil || err == sql.ErrNoRows {
+		log.Error().Msg("Can't retrieve user ID from session.")
+		return User{}, err
 	}
+
+	var user_id int
+	var username, creation_source, creation_date, user_role, user_privileges string
+	err = abd.db.QueryRow(`SELECT user_id, username, creation_source, creation_date, user_role, user_privileges 
+	FROM users WHERE user_id = $1`, userID).Scan(&user_id,
+		&username, &creation_source, &creation_date, &user_role, &user_privileges)
+	if err == sql.ErrNoRows || err != nil {
+		return User{}, err
+	}
+	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
+	return User{UserId: user_id, Username: username,
+		CreationSource: StringToUserCreationSource(creation_source),
+		CreationDate:   time,
+		UserRole:       StringToUserRoles(user_role),
+		UserPrivileges: StringToUserPrivileges(user_privileges),
+	}, nil
 }

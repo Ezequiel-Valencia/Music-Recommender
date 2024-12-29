@@ -27,3 +27,9 @@ type CalendarPayload struct {
 
 }
 
+type UserDTO struct{
+	Username string
+	CreationDate string
+	Role string
+}
+

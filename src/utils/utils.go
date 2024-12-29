@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -14,10 +15,6 @@ func WriteJSON(w http.ResponseWriter, output any, status int) error{
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(output)
-}
-
-func WriteError(){
-	
 }
 
 type MalformedRequest struct {
@@ -96,3 +93,13 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 }
 
 
+func IsStringAlphaNumeric(text string) bool{
+    return regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(text)
+}
+
+// The extra chars allowed by this function is as follows
+// (,)!@#$%^&*.:-;_
+func IsStringANWithExtraChars(text string) bool {
+    return regexp.MustCompile(`^[a-zA-Z0-9()!@#$%^&*.,:;\-_]*$`).MatchString(text)
+
+}
