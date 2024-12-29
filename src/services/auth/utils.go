@@ -86,8 +86,8 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		HttpOnly: true, // Prevents malicious
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		// Path: "/", // Accessible on all paths
-		// Domain: "go-server-domain",
+		Path: "/", // Accessible on all paths
+		Domain: config.DynamicEnvs.CookieDomain,
 	})
 
 	http.SetCookie(w, &http.Cookie{
@@ -97,8 +97,8 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		HttpOnly: false, // Needs to be accessed on the client side JS, and put as the X-CSRF-Token
 		Secure: true,
 		SameSite: http.SameSiteStrictMode,
-		// Path: "/", // Accessible on all paths
-		// Domain: "go-server-domain",
+		Path: "/", // Accessible on all paths
+		Domain: config.DynamicEnvs.CookieDomain,
 	})
 }
 

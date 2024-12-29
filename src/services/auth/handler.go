@@ -91,6 +91,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HttpOnly: true,
+		Domain: config.DynamicEnvs.CookieDomain,
 	})
 
 }

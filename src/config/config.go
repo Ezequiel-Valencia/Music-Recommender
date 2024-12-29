@@ -10,8 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Cookie Domain is the domain cookies should be made out to
 type Config struct {
 	HostAndPort string
+	CookieDomain string
 
 	DBPort   int
 	DBHost   string
@@ -54,6 +56,7 @@ func initConfig() Config {
 		DBName:            getEnv("DB_NAME", "postgres", true),
 		DBUser:            getEnv("DB_USER", "postgres", true),
 		DBPasswd:          getEnv("DB_PASSWD", "passwd", true),
+		CookieDomain:      getEnv("COOKIE_DOMAIN", "localhost", true),
 	}
 }
 
