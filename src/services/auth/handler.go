@@ -106,7 +106,6 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 
 	if user := h.authTable.GetUserStructFromUsername(username); user.UserId != 0 {
 		http.Error(w, "User already exists", http.StatusConflict)
-		log.Info().Msgf("%v", user)
 		return
 	}
 

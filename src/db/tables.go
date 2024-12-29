@@ -83,6 +83,7 @@ func CreateTables(db *sql.DB, testMode bool) error{
 			log.Fatal().AnErr("err", err).Msg("Table Creation Error")
 		}
 	}
+	log.Info().Msg("Created Tables")
 	return nil
 }
 

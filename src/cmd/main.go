@@ -15,7 +15,7 @@ func main() {
 
 	var server *http.Server = api.CreateMainServer(dbPointer, abstractDB) //Pointer to the API server struct
 	if err := server.ListenAndServe(); err != nil {
-		log.Fatal().AnErr("error", err)
+		log.Fatal().AnErr("error", err).Msg("Server can't start.")
 	}
-
+	log.Info().Msg("Server has stopped.")
 }

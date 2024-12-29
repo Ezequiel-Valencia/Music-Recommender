@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,7 +45,6 @@ func retrieveCSRFToken(r *http.Request) (string, bool){
 	if r.Method != http.MethodGet && r.Method != http.MethodHead{
 		header := r.Header.Get(config.StaticEnvs.CSRFHeaderName)
 		if header == ""{
-			log.Error().Msgf("No CSRF Token for request that requires it: %s", r.Pattern)
 			return "", true
 		}
 		var decoded string
