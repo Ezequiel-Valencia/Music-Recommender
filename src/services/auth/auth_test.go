@@ -133,6 +133,8 @@ func TestLogOut(t *testing.T){
 	rr := httptest.NewRecorder()
 	handler.register(rr, req)
 	sessionCookie := rr.Result().Cookies()[0]
+	var decodedSession string
+	config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedSession)
 	
 
 	for _, tc := range logOutTestCases{
@@ -147,6 +149,23 @@ func TestLogOut(t *testing.T){
 		}
 
 		handler.logout(testRecorder, request, db.User{UserId: 1})
+		user := handler.authTable.GetUserStructFromUsername("Ezequiel")
+
+		sessionUser, _ := handler.authTable.AbstractDB.GetUserFromSessionID(decodedSession, "", false)
+
+		// Assure you don't actually delete the user
+		assert.Equal(t, "Ezequiel", user.Username)
+		assert.Equal(t, 1, user.UserId)
+
+		// Check if session is gone
+		if tc.cookieState == validCookie{
+			assert.Equal(t, "", sessionUser.Username)
+			assert.Equal(t, 0, sessionUser.UserId)
+		} else{
+			assert.Equal(t, "Ezequiel", sessionUser.Username)
+			assert.Equal(t, 1, sessionUser.UserId)
+		}
+
 		assert.Equal(t, tc.statusCode, testRecorder.Code)
 		bod, _ := io.ReadAll(testRecorder.Body)
 		assert.Equal(t, tc.bodResponse, string(bod))

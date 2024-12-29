@@ -34,6 +34,7 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 	return &AbstractDB{db}, db, nil
 }
 
+// The session and CSRF tokens should be decoded
 func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken string, requiresCSRF bool) (User, error) {
 	if sessionCookie == "" {
 		log.Error().Msg("Invalid Signature for Cookie")
