@@ -106,6 +106,6 @@ func GetSessionUser() {}
 
 func validUsernameAndPasswordChars(username string, password string) bool {
 	lengthCheck := len(username) > 4 && len(username) < 20 && len(password) > 8 && len(password) < 50
-	charsUsedCheck := utils.IsStringAlphaNumeric(username) && utils.IsStringAlphaNumeric(password)
+	charsUsedCheck := utils.IsStringAlphaNumeric(username) && utils.IsStringANWithExtraChars(password)
 	return lengthCheck && charsUsedCheck
 }
