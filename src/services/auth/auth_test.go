@@ -434,6 +434,31 @@ func TestCSRFChecking(t *testing.T){
 
 }
 
+func TestPasswordUpdate(t *testing.T){
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
+
+	ogPassword, _ := hashPassword("password123")
+	handler.authTable.CreateUser("Ezequiel", ogPassword, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel2", ogPassword, "", db.LocalUserCreationSource.String())
+	user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
+
+	// Both passwords are the same, nothing has changed
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel", "password123"), "")
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "password123"), "")
+	assert.False(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "other890"), "")
+
+	rr := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel2&password=password123&newPassword=other890"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	handler.updatePassword(rr, request, user)
+
+	// Only the password of the user making the update has changed, and to it's appropriate value
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel", "password123"), "")
+	assert.False(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "password123"), "")
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "other890"), "")
+}
+
 func createAuthHandler() *Handler{
 	adb, dbPointer := t_utils.GetTestDB()
 	at := auth_table.CreateAuthTableDriver(dbPointer, adb)

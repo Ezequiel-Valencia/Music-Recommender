@@ -103,3 +103,11 @@ func GenerateSecureToken(length int) string {
 	}
 	return base64.URLEncoding.EncodeToString(bytesArray) //Base 64 is a set of characters safe for HTTP traffic
 }
+
+
+func (at AuthTable) UpdatePassword(user db.User, hashedPassword string){
+	_, err := at.db.Exec("UPDATE users SET password_hash = $1 WHERE user_id = $2", hashedPassword, user.UserId)
+	if err != nil{
+		log.Err(err).Msg("DB Error")
+	}
+}

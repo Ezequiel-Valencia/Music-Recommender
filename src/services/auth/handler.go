@@ -37,6 +37,7 @@ func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
 	router.HandleFunc("/login", h.login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods(http.MethodPost)
 	router.HandleFunc("/register", h.register).Methods(http.MethodPost)
+	router.HandleFunc("/passwd", RequireAuth(h.updatePassword, h.authTable.AbstractDB)).Methods(http.MethodPatch)
 }
 
 func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User) {
@@ -45,8 +46,29 @@ func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user 
 }
 
 func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user db.User) {
-
 	h.authTable.DeleteUser(user.Username, user.UserId)
+}
+
+func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request, user db.User){
+	// provide credentials to assure it is them
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	newPassword := r.FormValue("newPassword")
+
+	////////////////////////////
+	// Check User Credentials //
+	///////////////////////////
+	// if not valid
+	if !validUsernameAndPasswordChars(username, password) || !h.authTable.CorrectUsernameAndPassword(username, password) {
+		http.Error(w, "Invalid username/password. Can't update password.", http.StatusNotAcceptable)
+		return
+	}
+
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil{
+		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
+	}
+	h.authTable.UpdatePassword(user, hashedPassword)
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
