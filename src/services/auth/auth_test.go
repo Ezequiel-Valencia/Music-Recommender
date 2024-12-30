@@ -459,6 +459,26 @@ func TestPasswordUpdate(t *testing.T){
 	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "other890"), "")
 }
 
+func TestMaxNumberOfSessions(t *testing.T){
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
+
+	hashedPW, _ := hashPassword("password123")
+	handler.authTable.CreateUser("Ezequiel", hashedPW, "", db.LocalUserCreationSource.String())
+
+	rr := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	for i := range 15{
+		handler.login(rr, request)
+		if i <= 9{
+			assert.Equal(t, http.StatusOK, rr.Code)
+		} else{
+			assert.Equal(t, http.StatusTooManyRequests, rr.Code)
+		}
+	}
+}
+
 func createAuthHandler() *Handler{
 	adb, dbPointer := t_utils.GetTestDB()
 	at := auth_table.CreateAuthTableDriver(dbPointer, adb)

@@ -90,6 +90,11 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.authTable.ReachedMaxNumberOfSessionsForUser(h.authTable.GetUserStructFromUsername(username)){
+		http.Error(w, "Max number of logins reached. Logout on one device.", http.StatusTooManyRequests)
+		return
+	}
+
 	h.storeUserSessionAsCookie(w, username)
 
 }

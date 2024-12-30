@@ -111,3 +111,12 @@ func (at AuthTable) UpdatePassword(user db.User, hashedPassword string){
 		log.Err(err).Msg("DB Error")
 	}
 }
+
+func (at AuthTable) ReachedMaxNumberOfSessionsForUser(user db.User) bool{
+	res, err := at.db.Exec("SELECT session_id FROM sessions WHERE user_id = $1", user.UserId)
+	numRes, _ := res.RowsAffected()
+	if err != nil || numRes >= 10{
+		return true
+	}
+	return false
+}
