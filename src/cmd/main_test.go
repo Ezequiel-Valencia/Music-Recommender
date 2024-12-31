@@ -1,4 +1,4 @@
-package main_test
+package main
 
 import (
 	"bytes"
@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"music-recommender/api"
 	"music-recommender/config"
+	"music-recommender/db"
 	"music-recommender/utils/t_utils"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -43,6 +45,7 @@ func TestMain(m *testing.M) {
 
 // Indirectly also tests the register endpoint and the sessions it creates
 func TestAllEndpointsAuthRequirements(t *testing.T){
+	defer t_utils.ResetTestDB()
 	req, _ := http.NewRequest(http.MethodPost,
 		fmt.Sprintf("http://%s/api/v1/register", config.DynamicEnvs.HostAndPort),
 		bytes.NewReader([]byte("username=Ezequiel&password=password123")))
@@ -70,5 +73,41 @@ func TestAllEndpointsAuthRequirements(t *testing.T){
 			assert.NotEqual(t, http.StatusTemporaryRedirect, res.StatusCode)
 		}
 	}
+}
+
+
+
+func TestDailyDBTask(t *testing.T){
+	_, dbPointer := t_utils.GetTestDB()
+	defer t_utils.ResetTestDB()
+
+	nowTime := time.Now()
+	twoHundredDaysAgo := -1 * (200 * 24) * time.Hour
+	testUser := db.User{UserId: 1, Username: "Tester", CreationDate: nowTime.Add(twoHundredDaysAgo)}
+	t_utils.CreateFakeUser(dbPointer, &testUser, "password")
+
+	// Old Session
+	dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date) 
+	VALUES($1, $2, $3, $4)`, testUser.UserId, "ses", "crf", nowTime.Add(twoHundredDaysAgo).UTC().Format(config.StaticEnvs.TimeFormat))
+
+	// New Session
+	dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date) 
+	VALUES($1, $2, $3, $4)`, testUser.UserId, "ses", "crf", nowTime.UTC().Format(config.StaticEnvs.TimeFormat))
+
+	res, _ := dbPointer.Exec("SELECT * FROM sessions")
+	resNum, _ := res.RowsAffected()
+	var expectedNum int64 = 2
+	assert.Equal(t, expectedNum, resNum)
+
+	dailyDBTasks(dbPointer)
+
+	res, _ = dbPointer.Exec("SELECT * FROM sessions")
+	resNum, _ = res.RowsAffected()
+	expectedNum = 1
+	assert.Equal(t, expectedNum, resNum)
+
+	var sessionCreationDate string
+	dbPointer.QueryRow("SELECT creation_date FROM sessions").Scan(&sessionCreationDate)
+	assert.Equal(t, nowTime.UTC().Format(config.StaticEnvs.TimeFormat), sessionCreationDate)
 }
 

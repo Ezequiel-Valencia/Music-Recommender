@@ -13,6 +13,9 @@ func main() {
 
 	abstractDB, dbPointer, _ := db.CreateDB(false)
 
+	// Task set in separate thread that runs once a day
+	go dailyTaskSet(dbPointer)
+
 	var server *http.Server = api.CreateMainServer(dbPointer, abstractDB) //Pointer to the API server struct
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal().AnErr("error", err).Msg("Server can't start.")

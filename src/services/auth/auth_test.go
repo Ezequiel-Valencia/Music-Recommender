@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -308,7 +309,7 @@ func TestRequireAuth(t *testing.T){
 
 	handler.authTable.CreateUser("Ezequiel", "pw", "", db.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
-	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user)
+	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
 	endPointWithAuth := RequireAuth(handler.deleteUser, handler.authTable.AbstractDB)
 	for _, tc := range requireAuthTestCases{
 		request := httptest.NewRequest("POST", "/api/v1/delete", nil)
