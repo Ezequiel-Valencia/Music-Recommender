@@ -15,17 +15,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
-var allEndPoints = []struct{
-	Endpoint		string
-	RequestType		string
-	RequiresAuth	bool
+var allEndPoints = []struct {
+	Endpoint     string
+	RequestType  string
+	RequiresAuth bool
 }{
 	// Auth Service
 	{Endpoint: "/user", RequestType: http.MethodGet, RequiresAuth: true},
 	{Endpoint: "/user", RequestType: http.MethodDelete, RequiresAuth: true},
 	{Endpoint: "/logout", RequestType: http.MethodPost, RequiresAuth: true},
+	{Endpoint: "/passwd", RequestType: http.MethodPatch, RequiresAuth: true},
 
 	{Endpoint: "/login", RequestType: http.MethodPost, RequiresAuth: false},
 	{Endpoint: "/register", RequestType: http.MethodPost, RequiresAuth: false},
@@ -44,7 +43,7 @@ func TestMain(m *testing.M) {
 }
 
 // Indirectly also tests the register endpoint and the sessions it creates
-func TestAllEndpointsAuthRequirements(t *testing.T){
+func TestAllEndpointsAuthRequirements(t *testing.T) {
 	defer t_utils.ResetTestDB()
 	req, _ := http.NewRequest(http.MethodPost,
 		fmt.Sprintf("http://%s/api/v1/register", config.DynamicEnvs.HostAndPort),
@@ -60,24 +59,22 @@ func TestAllEndpointsAuthRequirements(t *testing.T){
 		},
 	}
 
-	for _, tc := range allEndPoints{
+	for _, tc := range allEndPoints {
 		reqString := fmt.Sprintf("http://%s%s%s", config.DynamicEnvs.HostAndPort, config.StaticEnvs.APIPrefix, tc.Endpoint)
 		req, _ = http.NewRequest(tc.RequestType, reqString, nil)
 		res, _ := client.Do(req)
-		if tc.RequiresAuth{
+		if tc.RequiresAuth {
 			assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode)
 			req.AddCookie(sessionCookie)
 			res, _ = http.DefaultClient.Do(req)
 			assert.NotEqual(t, http.StatusTemporaryRedirect, res.StatusCode)
-		} else{
+		} else {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, res.StatusCode)
 		}
 	}
 }
 
-
-
-func TestDailyDBTask(t *testing.T){
+func TestDailyDBTask(t *testing.T) {
 	_, dbPointer := t_utils.GetTestDB()
 	defer t_utils.ResetTestDB()
 
@@ -99,7 +96,7 @@ func TestDailyDBTask(t *testing.T){
 	var expectedNum int64 = 2
 	assert.Equal(t, expectedNum, resNum)
 
-	dailyDBTasks(dbPointer)
+	dbCleanUp(dbPointer)
 
 	res, _ = dbPointer.Exec("SELECT * FROM sessions")
 	resNum, _ = res.RowsAffected()
@@ -111,3 +108,15 @@ func TestDailyDBTask(t *testing.T){
 	assert.Equal(t, nowTime.UTC().Format(config.StaticEnvs.TimeFormat), sessionCreationDate)
 }
 
+func TestMoreThanOneOwnerChecker(t *testing.T){
+	_, dbPointer := t_utils.GetTestDB()
+	defer t_utils.ResetTestDB()
+
+
+	t_utils.CreateFakeUser(dbPointer, &db.User{Username: "OGOwner", UserRole: db.UnlimitedRole, UserPrivileges: db.OwnerPrivileges}, "passwd")
+	assert.False(t, isThereMoreThanOneOwner(dbPointer), "There is one owner")
+	t_utils.CreateFakeUser(dbPointer, &db.User{Username: "Oscar", UserPrivileges: db.OwnerPrivileges}, "passwd")
+	assert.True(t, isThereMoreThanOneOwner(dbPointer), "Oscar wants to be owner too.")
+	dbPointer.Exec("DELETE FROM users WHERE username = 'Oscar'")
+	assert.False(t, isThereMoreThanOneOwner(dbPointer), "Back to one. Oscar is banned.")
+}
