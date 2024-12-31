@@ -66,7 +66,8 @@ func hashPassword(password string) (string, error) {
 
 // Stores an unencoded session within the DB, and sends a signed version to the user
 func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username string) {
-	sessionid, csrfToken, err := h.authTable.GenerateAndStoreSessionID(h.authTable.GetUserStructFromUsername(username))
+	now := time.Now()
+	sessionid, csrfToken, err := h.authTable.GenerateAndStoreSessionID(h.authTable.GetUserStructFromUsername(username), now.UTC().Format(config.StaticEnvs.TimeFormat))
 	signedSession, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, sessionid)
 	signedCSRF, _ := config.SecureCookie.Encode(config.StaticEnvs.CSRFCookieName, csrfToken)
 	// csrfToken := ""
@@ -80,7 +81,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 	http.SetCookie(w, &http.Cookie{
 		Name:     config.StaticEnvs.SessionCookieName,
 		Value:    signedSession,
-		Expires:  time.Now().Add(oneHundred50Days),
+		Expires:  now.UTC().Add(oneHundred50Days),
 		HttpOnly: true, // Prevents malicious
 		Secure:   config.DynamicEnvs.CookieDomain != "", // if theres a domain, secure transfer only
 		SameSite: http.SameSiteStrictMode,
@@ -91,7 +92,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 	http.SetCookie(w, &http.Cookie{
 		Name: config.StaticEnvs.CSRFCookieName,
 		Value: signedCSRF,
-		Expires: time.Now().Add(oneHundred50Days),
+		Expires: now.UTC().Add(oneHundred50Days),
 		HttpOnly: false, // Needs to be accessed on the client side JS, and put as the X-CSRF-Token
 		Secure: config.DynamicEnvs.CookieDomain != "",
 		SameSite: http.SameSiteStrictMode,
@@ -99,8 +100,6 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		Domain: config.DynamicEnvs.CookieDomain,
 	})
 }
-
-func GetSessionUser() {}
 
 func validUsernameAndPasswordChars(username string, password string) bool {
 	lengthCheck := len(username) > 4 && len(username) < 20 && len(password) > 8 && len(password) < 50

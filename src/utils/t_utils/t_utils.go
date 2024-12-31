@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/ory/dockertest"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var dbPointer *sql.DB = nil
@@ -54,6 +55,7 @@ func GetTestDB() (*db.AbstractDB, *sql.DB) {
 	return adb, dbPointer
 }
 
+// Completely destroys everything regarding the containers and DB
 func TearDownTestDB() {
 	if (dbPointer != nil && adb != nil && pool != nil && resource != nil){
 		dbPointer.Close()
@@ -92,3 +94,15 @@ func GenerateRandomRuneString(lenOfRunes int, alphaNumericCompliant bool) string
 	}
 	return string(b)
 }
+
+
+func CreateFakeUser(db *sql.DB, user *db.User, nonHashedPasswd string){
+	const executeString = `INSERT INTO users(username, password_hash, subject_identifier, creation_source, 
+		creation_date, user_role, user_privileges) 
+	VALUES($1, $2, $3, $4, $5, $6, $7)`
+
+	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
+	hashedPassword := string(bytes)
+	db.Exec(executeString, user.Username, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+}
+

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -308,7 +309,7 @@ func TestRequireAuth(t *testing.T){
 
 	handler.authTable.CreateUser("Ezequiel", "pw", "", db.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
-	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user)
+	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
 	endPointWithAuth := RequireAuth(handler.deleteUser, handler.authTable.AbstractDB)
 	for _, tc := range requireAuthTestCases{
 		request := httptest.NewRequest("POST", "/api/v1/delete", nil)
@@ -432,6 +433,131 @@ func TestCSRFChecking(t *testing.T){
 		}
 	}
 
+}
+
+func TestPasswordUpdate(t *testing.T){
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
+
+	ogPassword, _ := hashPassword("password123")
+	handler.authTable.CreateUser("Ezequiel", ogPassword, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel2", ogPassword, "", db.LocalUserCreationSource.String())
+	user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
+
+	// Both passwords are the same, nothing has changed
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel", "password123"), "")
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "password123"), "")
+	assert.False(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "other890"), "")
+
+	rr := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel2&password=password123&newPassword=other890"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	handler.updatePassword(rr, request, user)
+
+	// Only the password of the user making the update has changed, and to it's appropriate value
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel", "password123"), "")
+	assert.False(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "password123"), "")
+	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "other890"), "")
+}
+
+func TestMaxNumberOfSessions(t *testing.T){
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
+
+	hashedPW, _ := hashPassword("password123")
+	handler.authTable.CreateUser("Ezequiel", hashedPW, "", db.LocalUserCreationSource.String())
+
+	rr := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	for i := range 15{
+		handler.login(rr, request)
+		if i <= 9{
+			assert.Equal(t, http.StatusOK, rr.Code)
+		} else{
+			assert.Equal(t, http.StatusTooManyRequests, rr.Code)
+		}
+	}
+}
+
+const(
+	notPrivilegedUser int =	iota
+	queryParamNotPresent
+	queryParamNotBoolean
+	validRequestToFalse
+	validRequestToTrue
+)
+
+var disableCreationCheck = []struct {
+	allowanceState int
+	code int
+	allowCreation bool
+}{
+	{
+		notPrivilegedUser,
+		http.StatusUnauthorized,
+		true,
+	},
+	{
+		queryParamNotPresent,
+		http.StatusBadRequest,
+		true,
+	},
+	{
+		queryParamNotBoolean,
+		http.StatusBadRequest,
+		true,
+	},
+	{
+		validRequestToFalse,
+		http.StatusOK,
+		false,
+	},
+	{
+		validRequestToTrue,
+		http.StatusOK,
+		true,
+	},
+}
+
+func TestDisablingUserCreation(t *testing.T){
+	handler := createAuthHandler()
+	_, dbPointer := t_utils.GetTestDB()
+	defer t_utils.ResetTestDB()
+
+	owner := db.User{Username: "Ezequiel", UserRole: db.UnlimitedRole, 
+	UserPrivileges: db.OwnerPrivileges, UserId: 1}
+	badActor := db.User{Username: "Couch", UserRole: db.CuratorRole, 
+	UserPrivileges: db.AdminPrivileges, UserId: 2}
+	t_utils.CreateFakeUser(dbPointer, &owner, "pass")
+	t_utils.CreateFakeUser(dbPointer, &badActor, "pass")
+
+	for _, tc := range disableCreationCheck{
+		rr := httptest.NewRecorder()
+		var request *http.Request
+		var testUser db.User
+		switch tc.allowanceState{
+		case notPrivilegedUser:
+			testUser = badActor
+			request = httptest.NewRequest("POST", "/allowCreation", nil)
+		case queryParamNotPresent:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?notPresent=True", nil)
+		case queryParamNotBoolean:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=80", nil)
+		case validRequestToFalse:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=False", nil)
+		case validRequestToTrue:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=True", nil)
+		}
+
+		handler.setUserCreationAllowance(rr, request, testUser)
+		assert.Equal(t, tc.code, rr.Code)
+		assert.Equal(t, tc.allowCreation, config.DynamicEnvs.AllowUserCreation)
+	}
 }
 
 func createAuthHandler() *Handler{

@@ -29,10 +29,11 @@ func (at AuthTable) CreateUser(username string, hashedPassword string,
 	const executeString = `INSERT INTO users(username, password_hash, subject_identifier, creation_source, 
 		creation_date, user_role, user_privileges) 
 	VALUES($1, $2, $3, $4, $5, $6, $7)`
+	nowTime := time.Now().UTC().Format(config.StaticEnvs.TimeFormat)
 	_, err := at.db.Exec(executeString, username, hashedPassword, subject_identifier,
-		creation_source, time.Now().UTC().Format(config.StaticEnvs.TimeFormat), db.VoterRole.String(), db.NoPrivileges.String())
+		creation_source, nowTime, db.VoterRole.String(), db.NoPrivileges.String())
 	if err != nil {
-		log.Err(err).Msg("DB Error")
+		log.Err(err).Msg("DB Error: Create User")
 		return err
 	}
 	return nil
@@ -71,14 +72,14 @@ func (at AuthTable) CorrectUsernameAndPassword(username string, password string)
 	return err == nil
 }
 
-func (mdb AuthTable) GenerateAndStoreSessionID(user db.User) (string, string, error) {
+func (mdb AuthTable) GenerateAndStoreSessionID(user db.User, timeCreated string) (string, string, error) {
 	newToken := GenerateSecureToken(50)
 	csrfToken := GenerateSecureToken(50)
-	const executeString = `INSERT INTO sessions(user_id, session_id, csrf_token) 
-	VALUES($1, $2, $3)`
-	_, err := mdb.db.Exec(executeString, user.UserId, newToken, csrfToken)
+	const executeString = `INSERT INTO sessions(user_id, session_id, csrf_token, creation_date) 
+	VALUES($1, $2, $3, $4)`
+	_, err := mdb.db.Exec(executeString, user.UserId, newToken, csrfToken, timeCreated)
 	if err != nil {
-		log.Err(err).Msg("DB Error")
+		log.Err(err).Msg("DB Error: Generate and store session")
 		return "", "", err
 	}
 
@@ -102,4 +103,33 @@ func GenerateSecureToken(length int) string {
 		log.Fatal().Msgf("Failed to generate token: %v", err)
 	}
 	return base64.URLEncoding.EncodeToString(bytesArray) //Base 64 is a set of characters safe for HTTP traffic
+}
+
+
+func (at AuthTable) UpdatePassword(user db.User, hashedPassword string){
+	_, err := at.db.Exec("UPDATE users SET password_hash = $1 WHERE user_id = $2", hashedPassword, user.UserId)
+	if err != nil{
+		log.Err(err).Msg("DB Error: Update password")
+	}
+}
+
+func (at AuthTable) ReachedMaxNumberOfSessionsForUser(user db.User) bool{
+	res, err := at.db.Exec("SELECT session_id FROM sessions WHERE user_id = $1", user.UserId)
+	numRes, _ := res.RowsAffected()
+	if err != nil || numRes >= 10{
+		return true
+	}
+	return false
+}
+
+func (at AuthTable) SetAbilityForUserCreation(allowCreation bool){
+	log.Warn().Msgf("Changing state of user creation to %t", allowCreation)
+	config.DynamicEnvs.AllowUserCreation = allowCreation
+	res, _ := at.db.Exec("SELECT * FROM server_state")
+	resNum, _ := res.RowsAffected()
+	if resNum > 1{
+		log.Fatal().Msg("There is more than one row for server state.")
+	} else if resNum == 1{
+		at.db.Exec("UPDATE server_state SET allow_user_creation = $1, update_date = $2", allowCreation, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
+	}
 }

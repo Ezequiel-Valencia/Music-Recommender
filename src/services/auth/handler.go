@@ -7,6 +7,7 @@ import (
 	"music-recommender/types"
 	"music-recommender/utils"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -34,9 +35,14 @@ func NewHandler(mdb *auth_table.AuthTable) *Handler {
 func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
 	router.HandleFunc("/user", RequireAuth(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods(http.MethodGet)
 	router.HandleFunc("/user", RequireAuth(h.deleteUser, h.authTable.AbstractDB)).Methods(http.MethodDelete)
+	
 	router.HandleFunc("/login", h.login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods(http.MethodPost)
 	router.HandleFunc("/register", h.register).Methods(http.MethodPost)
+	
+	router.HandleFunc("/allowUserCreation", RequireAuth(h.setUserCreationAllowance, h.authTable.AbstractDB)).Methods(http.MethodPost)
+
+	router.HandleFunc("/passwd", RequireAuth(h.updatePassword, h.authTable.AbstractDB)).Methods(http.MethodPatch)
 }
 
 func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User) {
@@ -45,8 +51,29 @@ func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user 
 }
 
 func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user db.User) {
-
 	h.authTable.DeleteUser(user.Username, user.UserId)
+}
+
+func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request, user db.User){
+	// provide credentials to assure it is them
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	newPassword := r.FormValue("newPassword")
+
+	////////////////////////////
+	// Check User Credentials //
+	///////////////////////////
+	// if not valid
+	if !validUsernameAndPasswordChars(username, password) || !h.authTable.CorrectUsernameAndPassword(username, password) {
+		http.Error(w, "Invalid username/password. Can't update password.", http.StatusNotAcceptable)
+		return
+	}
+
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil{
+		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
+	}
+	h.authTable.UpdatePassword(user, hashedPassword)
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +92,11 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	// if not valid
 	if !validUsernameAndPasswordChars(username, password) || !h.authTable.CorrectUsernameAndPassword(username, password) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
+		return
+	}
+
+	if h.authTable.ReachedMaxNumberOfSessionsForUser(h.authTable.GetUserStructFromUsername(username)){
+		http.Error(w, "Max number of logins reached. Logout on one device.", http.StatusTooManyRequests)
 		return
 	}
 
@@ -99,6 +131,12 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	var username string = r.FormValue("username")
 	var password string = r.FormValue("password")
+
+	if !config.DynamicEnvs.AllowUserCreation{
+		http.Error(w, "User creation is not allowed.", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if !validUsernameAndPasswordChars(username, password) {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
@@ -118,4 +156,29 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 
 	h.authTable.CreateUser(username, hashedPassword, "", db.LocalUserCreationSource.String())
 	h.storeUserSessionAsCookie(w, username)
+}
+
+
+func (h *Handler) setUserCreationAllowance(w http.ResponseWriter, r *http.Request, user db.User){
+	if (user.UserPrivileges != db.OwnerPrivileges){
+		log.Error().Msgf("Username %s, ID %d is attempting to disable user creation.", user.Username, user.UserId)
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	queryValues := r.URL.Query()
+	setState := queryValues.Get("allowUserCreation")
+	if setState == ""{
+		log.Error().Msg("Malformed request to disable account creation.")
+		http.Error(w, "Malformed request", http.StatusBadRequest)
+		return
+	}
+	allowUserCreationBool, err := strconv.ParseBool(setState)
+	if err != nil {
+		log.Error().Msg("Problem parsing boolean to set user creation state.")
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
+	h.authTable.SetAbilityForUserCreation(allowUserCreationBool)
 }
