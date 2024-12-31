@@ -20,6 +20,8 @@ type Config struct {
 	DBName   string
 	DBUser   string
 	DBPasswd string
+
+	AllowUserCreation bool
 }
 
 type StaticConfig struct {
@@ -57,6 +59,7 @@ func initConfig() Config {
 		DBUser:            getEnv("DB_USER", "postgres", true),
 		DBPasswd:          getEnv("DB_PASSWD", "passwd", false),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "", false), // nothing means localhost
+		AllowUserCreation: true,
 	}
 }
 

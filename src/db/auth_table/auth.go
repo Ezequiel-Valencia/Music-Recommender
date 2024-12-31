@@ -121,3 +121,15 @@ func (at AuthTable) ReachedMaxNumberOfSessionsForUser(user db.User) bool{
 	}
 	return false
 }
+
+func (at AuthTable) SetAbilityForUserCreation(allowCreation bool){
+	log.Warn().Msgf("Changing state of user creation to %t", allowCreation)
+	config.DynamicEnvs.AllowUserCreation = allowCreation
+	res, _ := at.db.Exec("SELECT * FROM server_state")
+	resNum, _ := res.RowsAffected()
+	if resNum > 1{
+		log.Fatal().Msg("There is more than one row for server state.")
+	} else if resNum == 1{
+		at.db.Exec("UPDATE server_state SET allow_user_creation = $1, update_date = $2", allowCreation, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
+	}
+}

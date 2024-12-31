@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"music-recommender/config"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -72,15 +74,24 @@ const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
 	creation_date TIMESTAMP NOT NULL
 )`
 
-
+const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
+	single_row INTEGER PRIMARY KEY NOT NULL UNIQUE DEFAULT 1,
+	allow_user_creation BOOLEAN NOT NULL,
+	update_date TIMESTAMP NOT NULL,
+	CONSTRAINT single_row_uni CHECK (single_row = 1)
+); REVOKE DELETE, TRUNCATE ON server_state FROM public;`
 
 // 0 for table primary key is special value, will not be used and can be assumed as NULL
-func CreateTables(db *sql.DB, testMode bool) error{
-	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable, createRankingTable, createTodaysRankingTable}
-	for _, v := range tables{
+func CreateTables(db *sql.DB, testMode bool) error {
+	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable,
+		createRankingTable, createTodaysRankingTable, serverState}
+	for _, v := range tables {
 		_, err := db.Exec(v)
-		if err != nil{
-			if testMode{return err}
+		if err != nil {
+			if testMode {
+				log.Err(err).Msg("Table creation error.")
+				return err
+			}
 			log.Fatal().AnErr("err", err).Msg("Table Creation Error")
 		}
 	}
@@ -88,5 +99,19 @@ func CreateTables(db *sql.DB, testMode bool) error{
 	return nil
 }
 
-
-
+func initializeOrGetServerState(db *sql.DB) {
+	res, _ := db.Exec("SELECT * FROM server_state")
+	if res == nil{
+		return
+	}
+	resNum, _ := res.RowsAffected()
+	if resNum > 1 {
+		log.Fatal().Msg("There is more than one row for server state.")
+	} else if resNum == 1{
+		db.QueryRow("SELECT allow_user_creation FROM server_state").Scan(&config.DynamicEnvs.AllowUserCreation)
+	} else if resNum == 0{
+		db.Exec(`INSERT INTO server_state(allow_user_creation, update_date)
+		VALUES($1, $2)`, true, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
+		return
+	}
+}

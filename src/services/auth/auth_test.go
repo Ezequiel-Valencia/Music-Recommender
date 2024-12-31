@@ -480,6 +480,86 @@ func TestMaxNumberOfSessions(t *testing.T){
 	}
 }
 
+const(
+	notPrivilegedUser int =	iota
+	queryParamNotPresent
+	queryParamNotBoolean
+	validRequestToFalse
+	validRequestToTrue
+)
+
+var disableCreationCheck = []struct {
+	allowanceState int
+	code int
+	allowCreation bool
+}{
+	{
+		notPrivilegedUser,
+		http.StatusUnauthorized,
+		true,
+	},
+	{
+		queryParamNotPresent,
+		http.StatusBadRequest,
+		true,
+	},
+	{
+		queryParamNotBoolean,
+		http.StatusBadRequest,
+		true,
+	},
+	{
+		validRequestToFalse,
+		http.StatusOK,
+		false,
+	},
+	{
+		validRequestToTrue,
+		http.StatusOK,
+		true,
+	},
+}
+
+func TestDisablingUserCreation(t *testing.T){
+	handler := createAuthHandler()
+	_, dbPointer := t_utils.GetTestDB()
+	defer t_utils.ResetTestDB()
+
+	owner := db.User{Username: "Ezequiel", UserRole: db.UnlimitedRole, 
+	UserPrivileges: db.OwnerPrivileges, UserId: 1}
+	badActor := db.User{Username: "Couch", UserRole: db.CuratorRole, 
+	UserPrivileges: db.AdminPrivileges, UserId: 2}
+	t_utils.CreateFakeUser(dbPointer, &owner, "pass")
+	t_utils.CreateFakeUser(dbPointer, &badActor, "pass")
+
+	for _, tc := range disableCreationCheck{
+		rr := httptest.NewRecorder()
+		var request *http.Request
+		var testUser db.User
+		switch tc.allowanceState{
+		case notPrivilegedUser:
+			testUser = badActor
+			request = httptest.NewRequest("POST", "/allowCreation", nil)
+		case queryParamNotPresent:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?notPresent=True", nil)
+		case queryParamNotBoolean:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=80", nil)
+		case validRequestToFalse:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=False", nil)
+		case validRequestToTrue:
+			testUser = owner
+			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=True", nil)
+		}
+
+		handler.setUserCreationAllowance(rr, request, testUser)
+		assert.Equal(t, tc.code, rr.Code)
+		assert.Equal(t, tc.allowCreation, config.DynamicEnvs.AllowUserCreation)
+	}
+}
+
 func createAuthHandler() *Handler{
 	adb, dbPointer := t_utils.GetTestDB()
 	at := auth_table.CreateAuthTableDriver(dbPointer, adb)

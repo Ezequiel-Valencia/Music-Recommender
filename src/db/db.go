@@ -28,6 +28,7 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 		log.Fatal().Msg(err.Error())
 	}
 	err = CreateTables(db, testMode)
+	initializeOrGetServerState(db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -39,12 +40,12 @@ func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken strin
 	if sessionCookie == "" {
 		log.Error().Msg("Invalid Signature for Cookie")
 		return User{}, errors.New("invalid session cookie")
-	} 
+	}
 	var userID int
 	var err error
-	if (requiresCSRF){
+	if requiresCSRF {
 		err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1 AND csrf_token = $2", sessionCookie, csrfToken).Scan(&userID)
-	} else{
+	} else {
 		err = abd.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = $1", sessionCookie).Scan(&userID)
 	}
 	if err != nil || err == sql.ErrNoRows {
