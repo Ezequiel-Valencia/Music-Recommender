@@ -27,6 +27,10 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 		}
 		log.Fatal().Msg(err.Error())
 	}
+	err = db.Ping()
+	if (err != nil){
+		log.Fatal().Err(err).Msg("Can't connect to db.")
+	}
 	err = CreateTables(db, testMode)
 	initializeOrGetServerState(db)
 	if err != nil {
