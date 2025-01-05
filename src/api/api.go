@@ -13,6 +13,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 type APIServer struct {
@@ -22,6 +23,10 @@ type APIServer struct {
 func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	router := mux.NewRouter()
 	subrouter := router.PathPrefix(config.StaticEnvs.APIPrefix).Subrouter()
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowCredentials: true, // Allow cookies from other origins to be sent
+	})
 
 	anonymous_user_handler := daily_user.NewHandler(ranking_table.CreateRankingTableDriver(db))
 	anonymous_user_handler.RegisterAnonymousUserRoutes(subrouter)
@@ -32,5 +37,7 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	auth_handler := auth.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
 	auth_handler.RegisterAuthRoutes(subrouter)
 
-	return &http.Server{Addr: config.DynamicEnvs.HostAndPort, Handler: subrouter}
+	
+	handlerWithCors := c.Handler(subrouter)
+	return &http.Server{Addr: config.DynamicEnvs.HostAndPort, Handler: handlerWithCors}
 }
