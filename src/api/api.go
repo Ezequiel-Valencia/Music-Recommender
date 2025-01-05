@@ -28,6 +28,11 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:5173"},
 		AllowCredentials: true, // Allow cookies from other origins to be sent
+		AllowedHeaders: []string{"x-csrf-token"}, // Allows for the CSRF token to be sent
+
+		// Tool for when CORS no longer works
+		// Debug: true,
+		// Logger: &log.Logger,
 	})
 
 	anonymous_user_handler := daily_user.NewHandler(ranking_table.CreateRankingTableDriver(db))
