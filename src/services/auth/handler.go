@@ -101,6 +101,10 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.storeUserSessionAsCookie(w, username)
+	user := h.authTable.GetUserStructFromUsername(username)
+	utils.WriteJSON(w, types.UserDTO{Username: username,
+		CreationDate: user.CreationDate.Format(config.StaticEnvs.TimeFormat), 
+		Role: user.UserRole.String()}, 200)
 
 }
 
@@ -156,6 +160,10 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 
 	h.authTable.CreateUser(username, hashedPassword, "", db.LocalUserCreationSource.String())
 	h.storeUserSessionAsCookie(w, username)
+	user := h.authTable.GetUserStructFromUsername(username)
+	utils.WriteJSON(w, types.UserDTO{Username: username,
+		CreationDate: user.CreationDate.Format(config.StaticEnvs.TimeFormat), 
+		Role: user.UserRole.String()}, 200)
 }
 
 

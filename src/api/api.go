@@ -23,8 +23,10 @@ type APIServer struct {
 func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	router := mux.NewRouter()
 	subrouter := router.PathPrefix(config.StaticEnvs.APIPrefix).Subrouter()
+
+	// https://www.stackhawk.com/blog/configuring-cors-for-go/
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: []string{"http://localhost:5173"},
 		AllowCredentials: true, // Allow cookies from other origins to be sent
 	})
 

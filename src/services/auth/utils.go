@@ -84,7 +84,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		Expires:  now.UTC().Add(oneHundred50Days),
 		HttpOnly: true, // Prevents malicious
 		Secure:   config.DynamicEnvs.CookieDomain != "", // if theres a domain, secure transfer only
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		Path: "/", // Accessible on all paths
 		Domain: config.DynamicEnvs.CookieDomain,
 	})
@@ -95,14 +95,14 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		Expires: now.UTC().Add(oneHundred50Days),
 		HttpOnly: false, // Needs to be accessed on the client side JS, and put as the X-CSRF-Token
 		Secure: config.DynamicEnvs.CookieDomain != "",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		Path: "/", // Accessible on all paths
 		Domain: config.DynamicEnvs.CookieDomain,
 	})
 }
 
 func validUsernameAndPasswordChars(username string, password string) bool {
-	lengthCheck := len(username) > 4 && len(username) < 20 && len(password) > 8 && len(password) < 50
+	lengthCheck := len(username) > 4 && len(username) < 15 && len(password) > 8 && len(password) < 30
 	charsUsedCheck := utils.IsStringAlphaNumeric(username) && utils.IsStringANWithExtraChars(password)
 	return lengthCheck && charsUsedCheck
 }
