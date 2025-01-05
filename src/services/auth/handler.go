@@ -82,7 +82,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if _, err := r.Cookie(config.StaticEnvs.SessionCookieName); err != http.ErrNoCookie {
-		http.Error(w, "User already logged in.", http.StatusBadRequest)
+		http.Error(w, "User already logged in. Please clear cookies for a new valid session.", http.StatusBadRequest)
 		return
 	}
 
@@ -125,9 +125,25 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     config.StaticEnvs.SessionCookieName,
 		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
+		Expires:  time.Now().AddDate(0, 0, -1),
 		HttpOnly: true,
+		Secure: config.DynamicEnvs.CookieDomain != "",
+		SameSite: http.SameSiteLaxMode,
+		Path: "/", // Accessible on all paths
 		Domain: config.DynamicEnvs.CookieDomain,
+		MaxAge: -1,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.StaticEnvs.CSRFCookieName,
+		Value:    "",
+		Expires:  time.Now().AddDate(0, 0, -1),
+		HttpOnly: false,
+		Secure: config.DynamicEnvs.CookieDomain != "",
+		SameSite: http.SameSiteLaxMode,
+		Path: "/", // Accessible on all paths
+		Domain: config.DynamicEnvs.CookieDomain,
+		MaxAge: -1,
 	})
 
 }
