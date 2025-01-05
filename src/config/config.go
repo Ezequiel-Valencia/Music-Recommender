@@ -14,6 +14,7 @@ import (
 type Config struct {
 	HostAndPort string
 	CookieDomain string
+	WebPageDomain string
 
 	DBPort   int
 	DBHost   string
@@ -59,6 +60,7 @@ func initConfig() Config {
 		DBUser:            getEnv("DB_USER", "postgres", true),
 		DBPasswd:          getEnv("DB_PASSWD", "passwd", false),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "", false), // nothing means localhost
+		WebPageDomain:	   getEnv("WEB_PAGE_DOMAIN", "http://localhost:5173", false),
 		AllowUserCreation: true,
 	}
 }

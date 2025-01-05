@@ -20,7 +20,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 		csrfToken, requiresCSRF := retrieveCSRFToken(r)
 		
 		if err != nil || (csrfToken == "" && requiresCSRF) {
-			http.Redirect(w, r, fmt.Sprintf("%s/login", config.StaticEnvs.APIPrefix), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -29,7 +29,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 		config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, encodedSessionCookie.Value, &sessionCookie)
 		user, err := adb.GetUserFromSessionID(sessionCookie, csrfToken, requiresCSRF)
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("%s/login", config.StaticEnvs.APIPrefix), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
 			return
 		}
 
