@@ -11,6 +11,7 @@ import (
 	"music-recommender/utils/t_utils"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,7 +92,7 @@ func TestLogin(t *testing.T) {
 	handler.login(rr, request)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 	bod, _ := io.ReadAll(rr.Body)
-	assert.Equal(t, "User already logged in.\n", string(bod))
+	assert.Equal(t, "User already logged in. Please clear cookies for a new valid session.\n", string(bod))
 
 	// Valid Credentials Test Case
 	request = httptest.NewRequest("POST", "/api/v1/login", bytes.NewBufferString("username=Ezequiel&password=password123"))
@@ -202,7 +203,7 @@ var registerTestCases = []struct {
 		"Create User, All Good",
 		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel2&password=password123")),
 		http.StatusOK,
-		"",
+		"Ezequiel2", // User object in JSON
 	},
 }
 
@@ -227,10 +228,12 @@ func TestRegister(t *testing.T){
 
 			user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
 			assert.Equal(t, 2, user.UserId) // Second user created
+			bod, _ := io.ReadAll(rr.Body)
+			assert.True(t, strings.Contains(string(bod), tc.expectedResponse))
+		} else{
+			bod, _ := io.ReadAll(rr.Body)
+			assert.Equal(t, tc.expectedResponse, string(bod))
 		}
-
-		bod, _ := io.ReadAll(rr.Body)
-		assert.Equal(t, tc.expectedResponse, string(bod))
 	}
 
 }
@@ -467,10 +470,10 @@ func TestMaxNumberOfSessions(t *testing.T){
 	hashedPW, _ := hashPassword("password123")
 	handler.authTable.CreateUser("Ezequiel", hashedPW, "", db.LocalUserCreationSource.String())
 
-	rr := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	for i := range 15{
+		rr := httptest.NewRecorder()
 		handler.login(rr, request)
 		if i <= 9{
 			assert.Equal(t, http.StatusOK, rr.Code)
