@@ -29,6 +29,9 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 	}
 	err = db.Ping()
 	if (err != nil){
+		if testMode{
+			return nil, nil, err
+		}
 		log.Fatal().Err(err).Msg("Can't connect to db.")
 	}
 	err = CreateTables(db, testMode)
