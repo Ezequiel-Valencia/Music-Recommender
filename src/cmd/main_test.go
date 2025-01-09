@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"music-recommender/api"
@@ -52,7 +51,7 @@ func getUserCookies(login bool)(*http.Cookie, *http.Cookie){
 	}
 	req, _ := http.NewRequest(http.MethodPost,
 		fmt.Sprintf("http://%s/api/v1%s", config.DynamicEnvs.HostAndPort, endpoint),
-		bytes.NewReader([]byte("username=Ezequiel&password=password123")))
+		t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake@gmail.com"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	res, _ := http.DefaultClient.Do(req)

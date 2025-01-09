@@ -1,11 +1,14 @@
 package t_utils
 
 import (
+	"bytes"
 	"database/sql"
+	"io"
 	"log"
 	"math/rand"
 	"music-recommender/config"
 	"music-recommender/db"
+	"net/url"
 	"strconv"
 
 	"github.com/ory/dockertest"
@@ -104,5 +107,10 @@ func CreateFakeUser(db *sql.DB, user *db.User, nonHashedPasswd string){
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
 	db.Exec(executeString, user.Username, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+}
+
+func CreateHTTPBodyURLEncoded(body string) io.Reader{
+	b64 := url.PathEscape(body)
+	return bytes.NewBufferString(b64)
 }
 

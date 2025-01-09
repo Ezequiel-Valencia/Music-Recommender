@@ -5,6 +5,7 @@ import "time"
 type User struct {
 	UserId         int
 	Username       string
+	Email		   string
 	CreationSource UserCreationSource
 	CreationDate   time.Time
 	UserRole       UserRoles
