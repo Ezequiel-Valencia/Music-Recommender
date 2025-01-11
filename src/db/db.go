@@ -27,6 +27,13 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 		}
 		log.Fatal().Msg(err.Error())
 	}
+	err = db.Ping()
+	if (err != nil){
+		if testMode{
+			return nil, nil, err
+		}
+		log.Fatal().Err(err).Msg("Can't connect to db.")
+	}
 	err = CreateTables(db, testMode)
 	initializeOrGetServerState(db)
 	if err != nil {
@@ -54,15 +61,15 @@ func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken strin
 	}
 
 	var user_id int
-	var username, creation_source, creation_date, user_role, user_privileges string
-	err = abd.db.QueryRow(`SELECT user_id, username, creation_source, creation_date, user_role, user_privileges 
+	var username, email, creation_source, creation_date, user_role, user_privileges string
+	err = abd.db.QueryRow(`SELECT user_id, username, email, creation_source, creation_date, user_role, user_privileges 
 	FROM users WHERE user_id = $1`, userID).Scan(&user_id,
-		&username, &creation_source, &creation_date, &user_role, &user_privileges)
+		&username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
 	if err == sql.ErrNoRows || err != nil {
 		return User{}, err
 	}
 	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
-	return User{UserId: user_id, Username: username,
+	return User{UserId: user_id, Username: username, Email: email,
 		CreationSource: StringToUserCreationSource(creation_source),
 		CreationDate:   time,
 		UserRole:       StringToUserRoles(user_role),

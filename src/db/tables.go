@@ -58,6 +58,7 @@ const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRankin
 const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 	user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	username TEXT,
+	email TEXT,
 	password_hash TEXT,
 	subject_identifier TEXT,
 	creation_source TEXT,

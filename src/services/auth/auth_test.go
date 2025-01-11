@@ -11,6 +11,7 @@ import (
 	"music-recommender/utils/t_utils"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,7 +54,7 @@ var invalidUsernameOrPasswordTestCases = []struct {
 	},
 	{
 		"Incorrect Password",
-		httptest.NewRequest("POST", "/api/v1/login", bytes.NewBufferString("username=Ezequiel&password=password1233")),
+		httptest.NewRequest("POST", "/api/v1/login", bytes.NewBufferString("username=Ezequiel&password=password1233&email=fake@gmail.com")),
 	},
 }
 
@@ -69,7 +70,7 @@ func TestLogin(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	hp, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", hp, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", db.LocalUserCreationSource.String())
 
 	for _, tc := range invalidUsernameOrPasswordTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -91,10 +92,10 @@ func TestLogin(t *testing.T) {
 	handler.login(rr, request)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 	bod, _ := io.ReadAll(rr.Body)
-	assert.Equal(t, "User already logged in.\n", string(bod))
+	assert.Equal(t, "User already logged in. Please clear cookies for a new valid session.\n", string(bod))
 
 	// Valid Credentials Test Case
-	request = httptest.NewRequest("POST", "/api/v1/login", bytes.NewBufferString("username=Ezequiel&password=password123"))
+	request = httptest.NewRequest("POST", "/api/v1/login", t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake@gmail.com"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr = httptest.NewRecorder()
 	handler.login(rr, request)
@@ -102,19 +103,19 @@ func TestLogin(t *testing.T) {
 }
 
 const (
-	noCookie	int = iota
+	noCookie int = iota
 	inValidCookie
 	validCookie
 )
 
-var logOutTestCases = []struct{
-	testName	string
-	cookieState		int
+var logOutTestCases = []struct {
+	testName    string
+	cookieState int
 	statusCode  int
 	bodResponse string
 }{
 	{
-		testName: "No Cookie, No Auth", bodResponse: "Can't logout\n", cookieState: noCookie, 
+		testName: "No Cookie, No Auth", bodResponse: "Can't logout\n", cookieState: noCookie,
 		statusCode: http.StatusUnauthorized,
 	},
 	{
@@ -124,24 +125,22 @@ var logOutTestCases = []struct{
 	{testName: "Valid Cookie", cookieState: validCookie, statusCode: http.StatusOK},
 }
 
-
-func TestLogOut(t *testing.T){
+func TestLogOut(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
-	req := httptest.NewRequest(http.MethodPost, "/logout", bytes.NewReader([]byte("username=Ezequiel&password=password123")))
+	req := httptest.NewRequest(http.MethodPost, "/logout", bytes.NewReader([]byte("username=Ezequiel&password=password123&email=fake@gmail.com")))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
 	handler.register(rr, req)
 	sessionCookie := rr.Result().Cookies()[0]
 	var decodedSession string
 	config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedSession)
-	
 
-	for _, tc := range logOutTestCases{
+	for _, tc := range logOutTestCases {
 		var testRecorder = httptest.NewRecorder()
 		var request = httptest.NewRequest("POST", "/logout", bytes.NewBufferString(""))
-		switch tc.cookieState{
+		switch tc.cookieState {
 		case inValidCookie:
 			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: t_utils.GenerateRandomRuneString(14, true)})
 		case validCookie:
@@ -159,10 +158,10 @@ func TestLogOut(t *testing.T){
 		assert.Equal(t, 1, user.UserId)
 
 		// Check if session is gone
-		if tc.cookieState == validCookie{
+		if tc.cookieState == validCookie {
 			assert.Equal(t, "", sessionUser.Username)
 			assert.Equal(t, 0, sessionUser.UserId)
-		} else{
+		} else {
 			assert.Equal(t, "Ezequiel", sessionUser.Username)
 			assert.Equal(t, 1, sessionUser.UserId)
 		}
@@ -173,47 +172,56 @@ func TestLogOut(t *testing.T){
 	}
 }
 
-
 var registerTestCases = []struct {
-	testCase string
-	request  *http.Request
-	code	 int
-	expectedResponse	string
+	testCase         string
+	request          *http.Request
+	code             int
+	expectedResponse string
 }{
 	{
 		"Invalid Username Chars",
-		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString(fmt.Sprintf("username=Ez@%s&password=password123", t_utils.GenerateRandomRuneString(5, false)))),
+		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString(fmt.Sprintf("username=Ez@%s&password=password123&email=fake@gmail.com", t_utils.GenerateRandomRuneString(5, false)))),
 		http.StatusNotAcceptable,
 		"Invalid username/password\n",
 	},
 	{
 		"Invalid Password Chars",
-		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString(fmt.Sprintf("username=Ezequiel&password=password123@%s", t_utils.GenerateRandomRuneString(5, false)))),
+		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString(fmt.Sprintf("username=Ezequiel&password=password123@%s&email=fake@gmail.com", t_utils.GenerateRandomRuneString(5, false)))),
+		http.StatusNotAcceptable,
+		"Invalid username/password\n",
+	},
+	{
+		"Invalid Email Chars",
+		httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded(fmt.Sprintf("username=Ezequiel&password=password123&email=fake@@gmail.com%s", t_utils.GenerateRandomRuneString(5, true)))),
 		http.StatusNotAcceptable,
 		"Invalid username/password\n",
 	},
 	{
 		"User Already Exists",
-		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123")),
+		httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake2@gmail.com")),
 		http.StatusConflict,
-		"User already exists\n",
+		"Username or email already exists\n",
+	},
+	{
+		"Email Already Exists",
+		httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel2&password=password123&email=fake@gmail.com")),
+		http.StatusConflict,
+		"Username or email already exists\n",
 	},
 	{
 		"Create User, All Good",
-		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel2&password=password123")),
+		httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel2&password=password123&email=fake2@gmail.com")),
 		http.StatusOK,
-		"",
+		"Ezequiel2", // User object in JSON
 	},
 }
 
-
-func TestRegister(t *testing.T){
+func TestRegister(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
-
 	hp, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", hp, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", db.LocalUserCreationSource.String())
 
 	for _, tc := range registerTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -221,25 +229,27 @@ func TestRegister(t *testing.T){
 		handler.register(rr, tc.request)
 
 		assert.Equal(t, tc.code, rr.Code)
-		if rr.Code == http.StatusOK{
+		if rr.Code == http.StatusOK {
 			session := rr.Result().Header.Get("Set-Cookie")
 			assert.NotEqual(t, "", session)
 
 			user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
 			assert.Equal(t, 2, user.UserId) // Second user created
+			bod, _ := io.ReadAll(rr.Body)
+			assert.True(t, strings.Contains(string(bod), tc.expectedResponse))
+		} else {
+			bod, _ := io.ReadAll(rr.Body)
+			assert.Equal(t, tc.expectedResponse, string(bod))
 		}
-
-		bod, _ := io.ReadAll(rr.Body)
-		assert.Equal(t, tc.expectedResponse, string(bod))
 	}
 
 }
 
-func TestDeleteUser(t *testing.T){
+func TestDeleteUser(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
-	
-	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123"))
+
+	request := httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake@gmail.com"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
 
@@ -253,9 +263,8 @@ func TestDeleteUser(t *testing.T){
 	assert.Equal(t, 0, user.UserId)
 }
 
-
 const (
-	noSession int	= iota
+	noSession int = iota
 	invalidSessionNotSigned
 	invalidSignedName
 	invalidCookieName
@@ -266,7 +275,7 @@ const (
 )
 
 var requireAuthTestCases = []struct {
-	testCase string
+	testCase     string
 	sessionState int
 }{
 	{
@@ -303,17 +312,17 @@ var requireAuthTestCases = []struct {
 	},
 }
 
-func TestRequireAuth(t *testing.T){
+func TestRequireAuth(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
-	handler.authTable.CreateUser("Ezequiel", "pw", "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "email", "pw", "", db.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
 	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
 	endPointWithAuth := RequireAuth(handler.deleteUser, handler.authTable.AbstractDB)
-	for _, tc := range requireAuthTestCases{
+	for _, tc := range requireAuthTestCases {
 		request := httptest.NewRequest("POST", "/api/v1/delete", nil)
-		switch tc.sessionState{
+		switch tc.sessionState {
 		case noSession:
 		case invalidSessionNotSigned:
 			request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: t_utils.GenerateRandomRuneString(20, true)})
@@ -344,16 +353,16 @@ func TestRequireAuth(t *testing.T){
 		rr := httptest.NewRecorder()
 		endPointWithAuth(rr, request)
 		log.Print(tc.testCase)
-		if (tc.sessionState == sessionAndCSRF){
+		if tc.sessionState == sessionAndCSRF {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
-		} else{
+		} else {
 			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
 		}
 	}
 }
 
-const(
-	getRequestWorks int =	iota
+const (
+	getRequestWorks int = iota
 	loginWorks
 	registerWorks
 	csrfCookieFails
@@ -362,8 +371,8 @@ const(
 )
 
 var csrfChecking = []struct {
-	testCase string
-	csrfState int
+	testCase     string
+	csrfState    int
 	csrfRequired bool
 }{
 	{
@@ -399,12 +408,12 @@ var csrfChecking = []struct {
 	},
 }
 
-func TestCSRFChecking(t *testing.T){
+func TestCSRFChecking(t *testing.T) {
 
-	for _, tc := range csrfChecking{
+	for _, tc := range csrfChecking {
 		var request *http.Request
 		fakeValue := "value is not checked in this function, but in DB call"
-		switch tc.csrfState{
+		switch tc.csrfState {
 		case getRequestWorks:
 			request = httptest.NewRequest(http.MethodGet, "/test", nil)
 		case loginWorks:
@@ -424,10 +433,10 @@ func TestCSRFChecking(t *testing.T){
 		}
 
 		decodedCSRF, isRequired := retrieveCSRFToken(request)
-		if (tc.csrfState == csrfHeaderWorks){
+		if tc.csrfState == csrfHeaderWorks {
 			assert.NotEqual(t, "", decodedCSRF)
 			assert.Equal(t, tc.csrfRequired, isRequired)
-		} else{
+		} else {
 			assert.Equal(t, "", decodedCSRF)
 			assert.Equal(t, tc.csrfRequired, isRequired)
 		}
@@ -435,53 +444,53 @@ func TestCSRFChecking(t *testing.T){
 
 }
 
-func TestPasswordUpdate(t *testing.T){
+func TestPasswordUpdate(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
 	ogPassword, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", ogPassword, "", db.LocalUserCreationSource.String())
-	handler.authTable.CreateUser("Ezequiel2", ogPassword, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "Ezequiel@gmail.com", ogPassword, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel2", "Ezequiel2@gmail.com", ogPassword, "", db.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
 
 	// Both passwords are the same, nothing has changed
-	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel", "password123"), "")
-	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "password123"), "")
-	assert.False(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "other890"), "")
+	assert.True(t, handler.authTable.CorrectEmailAndPassword("Ezequiel@gmail.com", "password123"), "")
+	assert.True(t, handler.authTable.CorrectEmailAndPassword("Ezequiel2@gmail.com", "password123"), "")
+	assert.False(t, handler.authTable.CorrectEmailAndPassword("Ezequiel2@gmail.com", "other890"), "")
 
 	rr := httptest.NewRecorder()
-	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel2&password=password123&newPassword=other890"))
+	request := httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded("email=Ezequiel2@gmail.com&password=password123&newPassword=other890"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	handler.updatePassword(rr, request, user)
 
 	// Only the password of the user making the update has changed, and to it's appropriate value
-	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel", "password123"), "")
-	assert.False(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "password123"), "")
-	assert.True(t, handler.authTable.CorrectUsernameAndPassword("Ezequiel2", "other890"), "")
+	assert.True(t, handler.authTable.CorrectEmailAndPassword("Ezequiel@gmail.com", "password123"), "")
+	assert.False(t, handler.authTable.CorrectEmailAndPassword("Ezequiel2@gmail.com", "password123"), "")
+	assert.True(t, handler.authTable.CorrectEmailAndPassword("Ezequiel2@gmail.com", "other890"), "")
 }
 
-func TestMaxNumberOfSessions(t *testing.T){
+func TestMaxNumberOfSessions(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
 	hashedPW, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", hashedPW, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hashedPW, "", db.LocalUserCreationSource.String())
 
-	rr := httptest.NewRecorder()
-	request := httptest.NewRequest("POST", "/api/v1/register", bytes.NewBufferString("username=Ezequiel&password=password123"))
+	request := httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake@gmail.com"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	for i := range 15{
+	for i := range 15 {
+		rr := httptest.NewRecorder()
 		handler.login(rr, request)
-		if i <= 9{
+		if i <= 9 {
 			assert.Equal(t, http.StatusOK, rr.Code)
-		} else{
+		} else {
 			assert.Equal(t, http.StatusTooManyRequests, rr.Code)
 		}
 	}
 }
 
-const(
-	notPrivilegedUser int =	iota
+const (
+	notPrivilegedUser int = iota
 	queryParamNotPresent
 	queryParamNotBoolean
 	validRequestToFalse
@@ -490,8 +499,8 @@ const(
 
 var disableCreationCheck = []struct {
 	allowanceState int
-	code int
-	allowCreation bool
+	code           int
+	allowCreation  bool
 }{
 	{
 		notPrivilegedUser,
@@ -520,23 +529,23 @@ var disableCreationCheck = []struct {
 	},
 }
 
-func TestDisablingUserCreation(t *testing.T){
+func TestDisablingUserCreation(t *testing.T) {
 	handler := createAuthHandler()
 	_, dbPointer := t_utils.GetTestDB()
 	defer t_utils.ResetTestDB()
 
-	owner := db.User{Username: "Ezequiel", UserRole: db.UnlimitedRole, 
-	UserPrivileges: db.OwnerPrivileges, UserId: 1}
-	badActor := db.User{Username: "Couch", UserRole: db.CuratorRole, 
-	UserPrivileges: db.AdminPrivileges, UserId: 2}
+	owner := db.User{Username: "Ezequiel", UserRole: db.UnlimitedRole,
+		UserPrivileges: db.OwnerPrivileges, UserId: 1}
+	badActor := db.User{Username: "Couch", UserRole: db.CuratorRole,
+		UserPrivileges: db.AdminPrivileges, UserId: 2}
 	t_utils.CreateFakeUser(dbPointer, &owner, "pass")
 	t_utils.CreateFakeUser(dbPointer, &badActor, "pass")
 
-	for _, tc := range disableCreationCheck{
+	for _, tc := range disableCreationCheck {
 		rr := httptest.NewRecorder()
 		var request *http.Request
 		var testUser db.User
-		switch tc.allowanceState{
+		switch tc.allowanceState {
 		case notPrivilegedUser:
 			testUser = badActor
 			request = httptest.NewRequest("POST", "/allowCreation", nil)
@@ -560,9 +569,8 @@ func TestDisablingUserCreation(t *testing.T){
 	}
 }
 
-func createAuthHandler() *Handler{
+func createAuthHandler() *Handler {
 	adb, dbPointer := t_utils.GetTestDB()
 	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
 	return NewHandler(at)
 }
-

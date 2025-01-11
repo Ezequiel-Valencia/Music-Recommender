@@ -29,7 +29,6 @@ RUN set -eux; \
 RUN go install github.com/air-verse/air@latest
 COPY src ./
 RUN go mod download
-VOLUME ../storage
 
 
 

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/badoux/checkmail"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,9 +19,9 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 		// Do you even have a session cookie?
 		encodedSessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
 		csrfToken, requiresCSRF := retrieveCSRFToken(r)
-		
+
 		if err != nil || (csrfToken == "" && requiresCSRF) {
-			http.Redirect(w, r, fmt.Sprintf("%s/login", config.StaticEnvs.APIPrefix), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -29,7 +30,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 		config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, encodedSessionCookie.Value, &sessionCookie)
 		user, err := adb.GetUserFromSessionID(sessionCookie, csrfToken, requiresCSRF)
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("%s/login", config.StaticEnvs.APIPrefix), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -38,18 +39,17 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 	}
 }
 
-
-// CSRF Has to be set as a header through JS. Otherwise it's still vulnerable to CSRF. Based on assumption that malicious user can't run 
+// CSRF Has to be set as a header through JS. Otherwise it's still vulnerable to CSRF. Based on assumption that malicious user can't run
 // scripts on browser that impersonate origin of my domain
-func retrieveCSRFToken(r *http.Request) (string, bool){
-	if r.Method != http.MethodGet && r.Method != http.MethodHead{
+func retrieveCSRFToken(r *http.Request) (string, bool) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		header := r.Header.Get(config.StaticEnvs.CSRFHeaderName)
-		if header == ""{
+		if header == "" {
 			return "", true
 		}
 		var decoded string
 		config.SecureCookie.Decode(config.StaticEnvs.CSRFCookieName, header, &decoded)
-		return decoded, true 
+		return decoded, true
 	}
 	return "", false
 }
@@ -73,6 +73,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 	// csrfToken := ""
 	if err != nil {
 		http.Error(w, "Unable to login user.", http.StatusBadRequest)
+		return
 	}
 
 	var oneHundred50Days time.Duration = 150 * (time.Hour * 24)
@@ -82,27 +83,37 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		Name:     config.StaticEnvs.SessionCookieName,
 		Value:    signedSession,
 		Expires:  now.UTC().Add(oneHundred50Days),
-		HttpOnly: true, // Prevents malicious
+		HttpOnly: true,                                  // Prevents malicious
 		Secure:   config.DynamicEnvs.CookieDomain != "", // if theres a domain, secure transfer only
-		SameSite: http.SameSiteStrictMode,
-		Path: "/", // Accessible on all paths
-		Domain: config.DynamicEnvs.CookieDomain,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/", // Accessible on all paths
+		Domain:   config.DynamicEnvs.CookieDomain,
 	})
 
 	http.SetCookie(w, &http.Cookie{
-		Name: config.StaticEnvs.CSRFCookieName,
-		Value: signedCSRF,
-		Expires: now.UTC().Add(oneHundred50Days),
+		Name:     config.StaticEnvs.CSRFCookieName,
+		Value:    signedCSRF,
+		Expires:  now.UTC().Add(oneHundred50Days),
 		HttpOnly: false, // Needs to be accessed on the client side JS, and put as the X-CSRF-Token
-		Secure: config.DynamicEnvs.CookieDomain != "",
-		SameSite: http.SameSiteStrictMode,
-		Path: "/", // Accessible on all paths
-		Domain: config.DynamicEnvs.CookieDomain,
+		Secure:   config.DynamicEnvs.CookieDomain != "",
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/", // Accessible on all paths
+		Domain:   config.DynamicEnvs.CookieDomain,
 	})
 }
 
-func validUsernameAndPasswordChars(username string, password string) bool {
-	lengthCheck := len(username) > 4 && len(username) < 20 && len(password) > 8 && len(password) < 50
-	charsUsedCheck := utils.IsStringAlphaNumeric(username) && utils.IsStringANWithExtraChars(password)
-	return lengthCheck && charsUsedCheck
+func validEmailChars(email string) bool {
+	emailLen := len(email) > 6 && len(email) < 40
+	emailErr := checkmail.ValidateFormat(email)
+	return emailLen && (emailErr == nil)
+}
+
+func validPasswordChars(password string) bool {
+	passwdLen := len(password) > 8 && len(password) < 30
+	return passwdLen && utils.IsStringANWithExtraChars(password)
+}
+
+func validUsernameChars(username string) bool {
+	usernameLen := len(username) > 4 && len(username) < 15
+	return utils.IsStringAlphaNumeric(username) && usernameLen
 }

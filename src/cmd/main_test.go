@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"music-recommender/api"
@@ -43,16 +42,27 @@ func TestMain(m *testing.M) {
 	t_utils.TearDownTestDB()
 }
 
-// Indirectly also tests the register endpoint and the sessions it creates
-func TestAllEndpointsAuthRequirements(t *testing.T) {
-	defer t_utils.ResetTestDB()
+func getUserCookies(login bool)(*http.Cookie, *http.Cookie){
+	var endpoint string
+	if (login){
+		endpoint = "/login"
+	} else{
+		endpoint = "/register"
+	}
 	req, _ := http.NewRequest(http.MethodPost,
-		fmt.Sprintf("http://%s/api/v1/register", config.DynamicEnvs.HostAndPort),
-		bytes.NewReader([]byte("username=Ezequiel&password=password123")))
+		fmt.Sprintf("http://%s/api/v1%s", config.DynamicEnvs.HostAndPort, endpoint),
+		t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake@gmail.com"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	res, _ := http.DefaultClient.Do(req)
-	sessionCookie := res.Cookies()[0]
+	return res.Cookies()[0], res.Cookies()[1]
+}
+
+// Indirectly also tests the register endpoint and the sessions it creates
+func TestAllEndpointsAuthRequirements(t *testing.T) {
+	defer t_utils.ResetTestDB()
+	var req *http.Request
+	sessionCookie, csrfCookie := getUserCookies(false)
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -66,9 +76,16 @@ func TestAllEndpointsAuthRequirements(t *testing.T) {
 		res, _ := client.Do(req)
 		if tc.RequiresAuth {
 			assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode)
+			req, _ = http.NewRequest(tc.RequestType, reqString, nil)
 			req.AddCookie(sessionCookie)
+			req.Header.Add(config.StaticEnvs.CSRFHeaderName, csrfCookie.Value)
 			res, _ = http.DefaultClient.Do(req)
 			assert.NotEqual(t, http.StatusTemporaryRedirect, res.StatusCode)
+
+			// If the endpoint deletes the user or logs them out, we have to validate it again
+			if ((tc.Endpoint == "/user" && tc.RequestType == "DELETE") || tc.Endpoint == "/logout"){
+				sessionCookie, csrfCookie = getUserCookies(tc.Endpoint == "/logout")
+			}
 		} else {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, res.StatusCode)
 		}

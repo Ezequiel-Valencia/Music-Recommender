@@ -1,0 +1,70 @@
+package auth_table
+
+import (
+	"database/sql"
+	"music-recommender/config"
+	"music-recommender/db"
+	"time"
+
+	"github.com/rs/zerolog/log"
+)
+
+
+
+func (at AuthTable) CreateUser(username string, email string, hashedPassword string,
+	subject_identifier string, creation_source string) error {
+
+	const executeString = `INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, 
+		creation_date, user_role, user_privileges) 
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
+	nowTime := time.Now().UTC().Format(config.StaticEnvs.TimeFormat)
+	_, err := at.db.Exec(executeString, username, email, hashedPassword, subject_identifier,
+		creation_source, nowTime, db.VoterRole.String(), db.NoPrivileges.String())
+	if err != nil {
+		log.Err(err).Msg("DB Error: Create User")
+		return err
+	}
+	return nil
+}
+
+func (at AuthTable) DeleteUser(username string, userID int) error {
+	_, err := at.db.Exec("DELETE FROM users WHERE username = $1 AND user_id = $2", username, userID)
+	return err
+}
+
+func (mdb AuthTable) GetUserStructFromUsername(providedUsername string) db.User {
+	var user_id int
+	var username, email, creation_source, creation_date, user_role, user_privileges string
+	err := mdb.db.QueryRow(`SELECT user_id, username, email, creation_source, creation_date, user_role, user_privileges 
+	FROM users WHERE username = $1`, providedUsername).Scan(&user_id,
+		&username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
+	if err == sql.ErrNoRows || err != nil {
+		return db.User{}
+	}
+	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
+	return db.User{UserId: user_id, Username: username, Email: email,
+		CreationSource: db.StringToUserCreationSource(creation_source),
+		CreationDate:   time,
+		UserRole:       db.StringToUserRoles(user_role),
+		UserPrivileges: db.StringToUserPrivileges(user_privileges),
+	}
+}
+
+
+func (mdb AuthTable) GetUserStructFromEmail(providedEmail string) db.User {
+	var user_id int
+	var username, email, creation_source, creation_date, user_role, user_privileges string
+	err := mdb.db.QueryRow(`SELECT user_id, username, email, creation_source, creation_date, user_role, user_privileges 
+	FROM users WHERE email = $1`, providedEmail).Scan(&user_id,
+		&username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
+	if err == sql.ErrNoRows || err != nil {
+		return db.User{}
+	}
+	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
+	return db.User{UserId: user_id, Username: username, Email: email,
+		CreationSource: db.StringToUserCreationSource(creation_source),
+		CreationDate:   time,
+		UserRole:       db.StringToUserRoles(user_role),
+		UserPrivileges: db.StringToUserPrivileges(user_privileges),
+	}
+}

@@ -13,6 +13,7 @@ services:
       - no-new-privileges:true
     environment:
       DB_HOST: db
+      COOKIE_DOMAIN: localhost:5173
       PUBLIC_HOST: "0.0.0.0" # Internal to the container, it should be on all interfaces
     networks:
         - threemix

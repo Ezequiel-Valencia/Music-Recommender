@@ -1,11 +1,14 @@
 package t_utils
 
 import (
+	"bytes"
 	"database/sql"
+	"io"
 	"log"
 	"math/rand"
 	"music-recommender/config"
 	"music-recommender/db"
+	"net/url"
 	"strconv"
 
 	"github.com/ory/dockertest"
@@ -97,12 +100,17 @@ func GenerateRandomRuneString(lenOfRunes int, alphaNumericCompliant bool) string
 
 
 func CreateFakeUser(db *sql.DB, user *db.User, nonHashedPasswd string){
-	const executeString = `INSERT INTO users(username, password_hash, subject_identifier, creation_source, 
+	const executeString = `INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, 
 		creation_date, user_role, user_privileges) 
-	VALUES($1, $2, $3, $4, $5, $6, $7)`
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
-	db.Exec(executeString, user.Username, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+	db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+}
+
+func CreateHTTPBodyURLEncoded(body string) io.Reader{
+	b64 := url.PathEscape(body)
+	return bytes.NewBufferString(b64)
 }
 
