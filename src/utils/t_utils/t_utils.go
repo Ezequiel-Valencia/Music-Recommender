@@ -10,6 +10,7 @@ import (
 	"music-recommender/db"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/ory/dockertest"
 	"golang.org/x/crypto/bcrypt"
@@ -113,4 +114,17 @@ func CreateHTTPBodyURLEncoded(body string) io.Reader{
 	b64 := url.PathEscape(body)
 	return bytes.NewBufferString(b64)
 }
+
+
+var TestUserBob db.User = db.User{Username: "Bob", UserId: 1, 
+Email: "bob@gmail.com", CreationSource: db.LocalUserCreationSource,
+CreationDate: time.Now(), UserRole: db.VoterRole, UserPrivileges: db.NoPrivileges}
+
+var TestUserCuratorModerator db.User = db.User{Username: "Admin", UserId: 2, 
+Email: "admin@gmail.com", CreationSource: db.LocalUserCreationSource,
+CreationDate: time.Now(), UserRole: db.CuratorRole, UserPrivileges: db.ModeratorPrivileges}
+
+var TestUserOwner db.User = db.User{Username: "Owner", UserId: 3, 
+Email: "owner@gmail.com", CreationSource: db.LocalUserCreationSource,
+CreationDate: time.Now(), UserRole: db.UnlimitedRole, UserPrivileges: db.OwnerPrivileges}
 
