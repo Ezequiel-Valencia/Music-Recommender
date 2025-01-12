@@ -34,6 +34,6 @@ func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user db.Us
 		log.Error().Msg(err.Error())
 		return
 	}
-	h.musicDB.InsertNewSong(&submitSong)
+	h.musicDB.InsertNewSong(&submitSong, user)
 }
 

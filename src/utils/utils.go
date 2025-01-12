@@ -103,3 +103,12 @@ func IsStringANWithExtraChars(text string) bool {
     return regexp.MustCompile(`^[a-zA-Z0-9()!@#$%^&*.,:;\-_]*$`).MatchString(text)
 
 }
+
+func IsProperYouTubeLink() bool{
+    return true
+}
+
+func GetResourceFromYouTubeLink(link *string) string{
+    return "link"
+}
+

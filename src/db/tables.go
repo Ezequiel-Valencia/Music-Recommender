@@ -21,10 +21,11 @@ const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	insert_date TIMESTAMP NOT NULL,
 	name TEXT,
+	artist TEXT,
 	songURL TEXT,
 	genre TEXT,
 	subgenre TEXT,
-	submitterID INTEGER references users(user_id),
+	submitter_id INTEGER references users(user_id),
 	rank_id TEXT,
 	num_ranks INTEGER
 )`
@@ -34,6 +35,7 @@ const createToBeRankedTable = `CREATE TABLE IF NOT EXISTS toBeRanked (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	song_id INTEGER references music(id),
 	description TEXT NOT NULL,
+	curator_id INTEGER references users(user_id),
 	group_id INTEGER NOT NULL
 )`
 
@@ -59,7 +61,7 @@ Sum up the choices and put them in the ranking table as appropriate
 Clean the table, and place the new songs which will be ranked within the table
 */
 const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRanking (
-	songID INTEGER references music(id),
+	song_id INTEGER references music(id),
 	curator_name TEXT NOT NULL,
 	description TEXT NOT NULL,
 	song_name TEXT NOT NULL,

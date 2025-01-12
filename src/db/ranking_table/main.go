@@ -5,6 +5,8 @@ import (
 	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/types/communication_types"
+	"music-recommender/types/internal_types"
+	"music-recommender/utils"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -18,6 +20,36 @@ type RankingTable struct{
 
 func CreateRankingTableDriver(db *sql.DB) *RankingTable{
 	return &RankingTable{db: db}
+}
+
+func (mdb RankingTable) SetTodaysRanking(submission *internal_types.TodaysRankingSubmission){
+	if len(submission.SongIDs) > 3{
+		log.Error().Msg("More than three songs will be set for ranking.")
+	}
+
+	for i, songID := range submission.SongIDs{
+		var name, url, artist string
+		err := mdb.db.QueryRow("SELECT name, artist, songURL FROM music WHERE id = $1", songID).Scan(
+			&name, &artist, &url,
+		)
+		if err != nil{
+			log.Err(err).Msg("Problem setting todays ranking.")
+			return
+		}
+		_, err = mdb.db.Exec(`INSERT INTO todaysRanking(
+			song_id, curator_name, description, song_name, song_artist,
+			song_path_resource, song_order
+		) 
+		VALUES($1, $2, $3, $4, $5, $6, $7)`, 
+		songID, submission.Curator, submission.Description, name, artist,
+		utils.GetResourceFromYouTubeLink(&url), i,
+		)
+
+		if err != nil{
+			log.Err(err).Msg("Problem setting todays ranking.")
+			return
+		}
+	}
 }
 
 

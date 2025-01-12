@@ -7,6 +7,7 @@ type SubmitVotePayload struct {
 
 type SubmitSong struct {
 	Name string
+	Artist string
 	SongURL string		
 	Genre string
 	Subgenre string
