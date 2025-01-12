@@ -22,7 +22,7 @@ func CreateRankingTableDriver(db *sql.DB) *RankingTable{
 
 
 func (mdb RankingTable) GetTodaysRanking() *types.TodaysRankingPayload {
-	res, err := mdb.db.Query("SELECT order, num_votes FROM todaysRanking")
+	res, err := mdb.db.Query("SELECT song_order, num_votes FROM todaysRanking")
 	if err != nil {
 		log.Err(err).Msg("Can't get todays ranking.")
 	}
@@ -55,7 +55,7 @@ func (mdb RankingTable) UpdateTodaysRanking(submitVote types.SubmitVotePayload, 
 		return
 	}
 
-	_, err = mdb.db.Exec("UPDATE todaysRanking SET num_votes = num_votes + 1 WHERE order = $1",
+	_, err = mdb.db.Exec("UPDATE todaysRanking SET num_votes = num_votes + 1 WHERE song_order = $1",
 		submitVote.SongNumber)
 	if err != nil{
 		log.Err(err).Msg("Update ranking did not work")
@@ -64,7 +64,7 @@ func (mdb RankingTable) UpdateTodaysRanking(submitVote types.SubmitVotePayload, 
 
 func (mdb RankingTable) GetTodaysMusic() *types.TodaysMusicPayload {
 
-	rows, err := mdb.db.Query(`SELECT songID, curator_name, description, order, song_name, song_artist, song_path_resource
+	rows, err := mdb.db.Query(`SELECT songID, curator_name, description, song_order, song_name, song_artist, song_path_resource
 	FROM todaysRanking`)
 	if (err != nil){
 		log.Err(err).Msg("Can't Get Todays Rankings")
@@ -81,7 +81,7 @@ func (mdb RankingTable) GetTodaysMusic() *types.TodaysMusicPayload {
 		musicPayload.CuratorDescription = description
 		musicPayload.CuratorName = curatorName
 
-		musicEntry := types.MusicPayloadEntry{Title: songName, Artist: songArtist, Order: order, PathResource: songResource}
+		musicEntry := types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
 		musicPayload.MusicEntries = append(musicPayload.MusicEntries, musicEntry)
 	}
 

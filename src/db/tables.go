@@ -65,7 +65,7 @@ const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRankin
 	song_name TEXT NOT NULL,
 	song_artist TEXT NOT NULL,
 	song_path_resource TEXT NOT NULL,
-	order INTEGER NOT NULL,
+	song_order INTEGER NOT NULL,
 	num_votes INTEGER DEFAULT 0
 )`
 

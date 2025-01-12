@@ -14,7 +14,7 @@ type SubmitSong struct {
 }
 
 /*
-Order -> Percentage of votes
+Song Order -> Percentage of votes
 */
 type TodaysRankingPayload struct {
 	RankingMap map[int]int
@@ -24,7 +24,7 @@ type MusicPayloadEntry struct{
 	Title string
 	Artist string
 	PathResource string
-	Order int
+	SongOrder int
 }
 
 type TodaysMusicPayload struct {
