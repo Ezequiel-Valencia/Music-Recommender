@@ -4,7 +4,7 @@ import (
 	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/db/auth_table"
-	"music-recommender/types"
+	"music-recommender/types/communication_types"
 	"music-recommender/utils"
 	"net/http"
 	"strconv"
@@ -47,7 +47,7 @@ func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
 }
 
 func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User) {
-	utils.WriteJSON(w, types.UserDTO{Username: user.Username,
+	utils.WriteJSON(w, communication_types.UserDTO{Username: user.Username,
 		CreationDate: user.CreationDate.Format(time.DateOnly), Role: user.UserRole.String()}, 200)
 }
 
@@ -105,7 +105,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.storeUserSessionAsCookie(w, loginUser.Username)
-	utils.WriteJSON(w, types.UserDTO{Username: loginUser.Username,
+	utils.WriteJSON(w, communication_types.UserDTO{Username: loginUser.Username,
 		CreationDate: loginUser.CreationDate.Format(config.StaticEnvs.TimeFormat),
 		Role:         loginUser.UserRole.String()}, 200)
 
@@ -187,7 +187,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	h.authTable.CreateUser(username, email, hashedPassword, "", db.LocalUserCreationSource.String())
 	h.storeUserSessionAsCookie(w, username)
 	user := h.authTable.GetUserStructFromUsername(username)
-	utils.WriteJSON(w, types.UserDTO{Username: username,
+	utils.WriteJSON(w, communication_types.UserDTO{Username: username,
 		CreationDate: user.CreationDate.Format(config.StaticEnvs.TimeFormat),
 		Role:         user.UserRole.String()}, 200)
 }

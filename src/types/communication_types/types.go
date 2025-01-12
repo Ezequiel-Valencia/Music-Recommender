@@ -1,4 +1,4 @@
-package types
+package communication_types
 
 
 type SubmitVotePayload struct {

@@ -4,7 +4,7 @@ import (
 	"music-recommender/db"
 	"music-recommender/db/music_table"
 	"music-recommender/services/auth"
-	"music-recommender/types"
+	"music-recommender/types/communication_types"
 	"music-recommender/utils"
 	"net/http"
 
@@ -28,7 +28,7 @@ func (h *Handler) RegisterCuratorRoutes(router *mux.Router){
 
 func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user db.User){
 	// submit music to be chosen to the data base.
-	var submitSong types.SubmitSong
+	var submitSong communication_types.SubmitSong
 	err := utils.DecodeJSONBody(w, r, &submitSong)
 	if err != nil{
 		log.Error().Msg(err.Error())

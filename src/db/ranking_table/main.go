@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"music-recommender/config"
 	"music-recommender/db"
-	"music-recommender/types"
+	"music-recommender/types/communication_types"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -21,12 +21,12 @@ func CreateRankingTableDriver(db *sql.DB) *RankingTable{
 }
 
 
-func (mdb RankingTable) GetTodaysRanking() *types.TodaysRankingPayload {
+func (mdb RankingTable) GetTodaysRanking() *communication_types.TodaysRankingPayload {
 	res, err := mdb.db.Query("SELECT song_order, num_votes FROM todaysRanking")
 	if err != nil {
 		log.Err(err).Msg("Can't get todays ranking.")
 	}
-	todaysRanking := types.TodaysRankingPayload{}
+	todaysRanking := communication_types.TodaysRankingPayload{}
 	var totalVotes int = 0
 	for res.Next(){
 		var order, numVotes int
@@ -46,7 +46,7 @@ func (mdb RankingTable) UserAlreadyVoteToday(user db.User) bool{
 	return !isYesterdayOrBefore(lastVote)
 }
 
-func (mdb RankingTable) UpdateTodaysRanking(submitVote types.SubmitVotePayload, user db.User) {
+func (mdb RankingTable) UpdateTodaysRanking(submitVote communication_types.SubmitVotePayload, user db.User) {
 	_, err := mdb.db.Exec("UPDATE users SET last_vote = $1 WHERE user_id = $2", 
 	time.Now().Format(config.StaticEnvs.TimeFormat), user.UserId)
 
@@ -62,17 +62,17 @@ func (mdb RankingTable) UpdateTodaysRanking(submitVote types.SubmitVotePayload, 
 	}
 }
 
-func (mdb RankingTable) GetTodaysMusic() *types.TodaysMusicPayload {
+func (mdb RankingTable) GetTodaysMusic() *communication_types.TodaysMusicPayload {
 
 	rows, err := mdb.db.Query(`SELECT songID, curator_name, description, song_order, song_name, song_artist, song_path_resource
 	FROM todaysRanking`)
 	if (err != nil){
 		log.Err(err).Msg("Can't Get Todays Rankings")
-		return &types.TodaysMusicPayload{}
+		return &communication_types.TodaysMusicPayload{}
 	}
 	
-	var musicPayload types.TodaysMusicPayload
-	musicPayload.MusicEntries = []types.MusicPayloadEntry{}
+	var musicPayload communication_types.TodaysMusicPayload
+	musicPayload.MusicEntries = []communication_types.MusicPayloadEntry{}
 
 	for rows.Next() {
 		var songID, order int
@@ -81,7 +81,7 @@ func (mdb RankingTable) GetTodaysMusic() *types.TodaysMusicPayload {
 		musicPayload.CuratorDescription = description
 		musicPayload.CuratorName = curatorName
 
-		musicEntry := types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
+		musicEntry := communication_types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
 		musicPayload.MusicEntries = append(musicPayload.MusicEntries, musicEntry)
 	}
 
@@ -89,8 +89,8 @@ func (mdb RankingTable) GetTodaysMusic() *types.TodaysMusicPayload {
 	return &musicPayload
 }
 
-func (mdb RankingTable) GetCalendarsMusic() *types.CalendarPayload {
-	return &types.CalendarPayload{}
+func (mdb RankingTable) GetCalendarsMusic() *communication_types.CalendarPayload {
+	return &communication_types.CalendarPayload{}
 }
 
 

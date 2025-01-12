@@ -4,7 +4,7 @@ import (
 	"music-recommender/db"
 	"music-recommender/db/ranking_table"
 	"music-recommender/services/auth"
-	"music-recommender/types"
+	"music-recommender/types/communication_types"
 	"music-recommender/utils"
 	"net/http"
 
@@ -33,7 +33,7 @@ func (h *Handler) RegisterAnonymousUserRoutes(router *mux.Router){
 // https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body
 
 func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user db.User){
-	var vote types.SubmitVotePayload
+	var vote communication_types.SubmitVotePayload
 	err := utils.DecodeJSONBody(w, r, vote)
 	if err != nil{
 		log.Error().Msg(err.Error())
@@ -51,7 +51,7 @@ func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user db.Us
 	}
 
 	h.rankingTable.UpdateTodaysRanking(vote, user)
-	var todaysRanking *types.TodaysRankingPayload = h.rankingTable.GetTodaysRanking()
+	var todaysRanking *communication_types.TodaysRankingPayload = h.rankingTable.GetTodaysRanking()
 	utils.WriteJSON(w, todaysRanking, 200)
 }
 
