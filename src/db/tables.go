@@ -24,21 +24,32 @@ const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
 	songURL TEXT,
 	genre TEXT,
 	subgenre TEXT,
-	description TEXT,
 	submitterID INTEGER references users(user_id),
 	rank_id TEXT,
 	num_ranks INTEGER
 )`
 
+
+const createToBeRankedTable = `CREATE TABLE IF NOT EXISTS toBeRanked (
+	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+	song_id INTEGER references music(id),
+	description TEXT NOT NULL,
+	group_id INTEGER NOT NULL
+)`
+
 /*
 Ranking can include multiple songs that have been ranked, thus it will be
 a string that has specific format easy for tokenization, with each token
-being a reference to a music ID
+being a reference to a (music ID, rank, 
+
+Better yet assign the same day to all rankings 
 */
 
-const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranking (
+const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranked (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	date_ranked TIMESTAMP NOT NULL,
+	num_votes INTEGER,
+	winner BOOLEAN,
 	ranking TEXT
 )`
 
@@ -49,22 +60,28 @@ Clean the table, and place the new songs which will be ranked within the table
 */
 const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRanking (
 	songID INTEGER references music(id),
-	name TEXT,
-	num_votes INTEGER
+	curator_name TEXT NOT NULL,
+	description TEXT NOT NULL,
+	song_name TEXT NOT NULL,
+	song_artist TEXT NOT NULL,
+	song_path_resource TEXT NOT NULL,
+	order INTEGER NOT NULL,
+	num_votes INTEGER DEFAULT 0
 )`
 
 // User Identity instead of serial for UID's cause it's SQL compliant
 // https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
 const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 	user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
-	username TEXT,
-	email TEXT,
-	password_hash TEXT,
+	username TEXT NOT NULL,
+	email TEXT NOT NULL,
+	password_hash TEXT NOT NULL,
 	subject_identifier TEXT,
-	creation_source TEXT,
+	creation_source TEXT NOT NULL,
 	creation_date TIMESTAMP NOT NULL,
-	user_role TEXT,
-	user_privileges TEXT
+	user_role TEXT NOT NULL,
+	user_privileges TEXT NOT NULL,
+	last_vote TIMESTAMP
 )`
 
 const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
@@ -85,7 +102,7 @@ const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
 // 0 for table primary key is special value, will not be used and can be assumed as NULL
 func CreateTables(db *sql.DB, testMode bool) error {
 	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable,
-		createRankingTable, createTodaysRankingTable, serverState}
+		createRankingTable, createTodaysRankingTable, serverState, createToBeRankedTable}
 	for _, v := range tables {
 		_, err := db.Exec(v)
 		if err != nil {

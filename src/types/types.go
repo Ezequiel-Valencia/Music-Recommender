@@ -2,7 +2,7 @@ package types
 
 
 type SubmitVotePayload struct {
-	SongName string
+	SongNumber int
 }
 
 type SubmitSong struct {
@@ -13,13 +13,24 @@ type SubmitSong struct {
 	Description string
 }
 
+/*
+Order -> Percentage of votes
+*/
 type TodaysRankingPayload struct {
-	RankingMap map[string]int
+	RankingMap map[int]int
 }
 
+type MusicPayloadEntry struct{
+	Title string
+	Artist string
+	PathResource string
+	Order int
+}
 
 type TodaysMusicPayload struct {
-
+	CuratorName string
+	CuratorDescription string
+	MusicEntries []MusicPayloadEntry
 }
 
 
