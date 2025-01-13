@@ -319,7 +319,7 @@ func TestRequireAuth(t *testing.T) {
 	handler.authTable.CreateUser("Ezequiel", "email", "pw", "", auth_types.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
 	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
-	endPointWithAuth := RequireAuth(handler.deleteUser, handler.authTable.AbstractDB)
+	endPointWithAuth := RequireAuthMinimumPrivileges(handler.deleteUser, handler.authTable.AbstractDB)
 	for _, tc := range requireAuthTestCases {
 		request := httptest.NewRequest("POST", "/api/v1/delete", nil)
 		switch tc.sessionState {
@@ -357,6 +357,89 @@ func TestRequireAuth(t *testing.T) {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
 		} else {
 			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
+		}
+	}
+}
+
+const (
+	minPrivileges int = iota
+	privilegeIsToHigh
+	roleIsToHigh
+	bothToHigh
+	elevatedPrivileges
+)
+
+var requireAuthPrivilegesTC = []struct {
+	sessionState int
+	privilege auth_types.UserPrivileges
+	role auth_types.UserRoles
+	redirection bool
+}{
+	{
+		minPrivileges,
+		auth_types.NoPrivileges,
+		auth_types.VoterRole,
+		false,
+	},
+	{
+		privilegeIsToHigh,
+		auth_types.AdminPrivileges,
+		auth_types.VoterRole,
+		true,
+	},
+	{
+		roleIsToHigh,
+		auth_types.NoPrivileges,
+		auth_types.CuratorRole,
+		true,
+	},
+	{
+		bothToHigh,
+		auth_types.AdminPrivileges,
+		auth_types.CuratorRole,
+		true,
+	},
+	{
+		elevatedPrivileges,
+		auth_types.AdminPrivileges,
+		auth_types.CuratorRole,
+		false,
+	},
+}
+
+func TestRequireAuthPrivileges(t *testing.T){
+	handler := createAuthHandler()
+	defer t_utils.ResetTestDB()
+
+	// Create user
+	handler.authTable.CreateUser("Ezequiel", "email", "pw", "", auth_types.LocalUserCreationSource.String())
+	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
+
+	// Create cookies
+	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
+	csrfCookie, _ := config.SecureCookie.Encode(config.StaticEnvs.CSRFCookieName, csrfUnEncode)
+	cookie, _ := config.SecureCookie.Encode(config.StaticEnvs.SessionCookieName, unEncodedSession)
+
+	// Setup request
+	request := httptest.NewRequest("GET", "/api/v1/user", nil)
+	request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: cookie})
+	request.Header.Add(config.StaticEnvs.CSRFHeaderName, csrfCookie)
+
+	for _, tc := range requireAuthPrivilegesTC{
+		endPointWithAuth := RequireAuth(handler.loggedInUserInfo, handler.authTable.AbstractDB, tc.privilege, tc.role)
+		rr := httptest.NewRecorder()
+
+		if (tc.sessionState == elevatedPrivileges){
+			handler.authTable.SetUserPrivilege("Ezequiel", auth_types.AdminPrivileges)
+			handler.authTable.SetUserRole("Ezequiel", auth_types.CuratorRole)
+		}
+
+		endPointWithAuth(rr, request)
+
+		if (tc.redirection){
+			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
+		} else{
+			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
 		}
 	}
 }

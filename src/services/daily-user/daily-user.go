@@ -24,8 +24,8 @@ func NewHandler(mdb *ranking_table.RankingTable, adb *db.AbstractDB) *Handler {
 
 func (h *Handler) RegisterAnonymousUserRoutes(router *mux.Router) {
 	router.HandleFunc("/todaysMusic", h.handleGettingTodaysMusic).Methods("GET")
-	router.HandleFunc("/calendar", auth.RequireAuth(h.handleGettingCalendar, h.adb)).Methods("GET")
-	router.HandleFunc("/todaysMusic", auth.RequireAuth(h.submitAVote, h.adb)).Methods("POST")
+	router.HandleFunc("/calendar", auth.RequireAuthMinimumPrivileges(h.handleGettingCalendar, h.adb)).Methods("GET")
+	router.HandleFunc("/voteMusic", auth.RequireAuthMinimumPrivileges(h.submitAVote, h.adb)).Methods("POST")
 }
 
 // https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body

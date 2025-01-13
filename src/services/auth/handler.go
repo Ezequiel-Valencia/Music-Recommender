@@ -34,16 +34,18 @@ func NewHandler(mdb *auth_table.AuthTable) *Handler {
 }
 
 func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
-	router.HandleFunc("/user", RequireAuth(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods(http.MethodGet)
-	router.HandleFunc("/user", RequireAuth(h.deleteUser, h.authTable.AbstractDB)).Methods(http.MethodDelete)
+	router.HandleFunc("/user", RequireAuthMinimumPrivileges(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods(http.MethodGet)
+	router.HandleFunc("/user", RequireAuthMinimumPrivileges(h.deleteUser, h.authTable.AbstractDB)).Methods(http.MethodDelete)
 
 	router.HandleFunc("/login", h.login).Methods(http.MethodPost)
-	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods(http.MethodPost)
+	router.HandleFunc("/logout", RequireAuthMinimumPrivileges(h.logout, h.authTable.AbstractDB)).Methods(http.MethodPost)
 	router.HandleFunc("/register", h.register).Methods(http.MethodPost)
 
-	router.HandleFunc("/allowUserCreation", RequireAuth(h.setUserCreationAllowance, h.authTable.AbstractDB)).Methods(http.MethodPost)
+	router.HandleFunc("/allowUserCreation", RequireAuth(h.setUserCreationAllowance, h.authTable.AbstractDB, auth_types.AdminPrivileges, auth_types.VoterRole)).Methods(http.MethodPost)
+	router.HandleFunc("/setUserRole", RequireAuth(h.setUserRole, h.authTable.AbstractDB, auth_types.ModeratorPrivileges, auth_types.TrustedCuratorRole)).Methods(http.MethodPost)
+	router.HandleFunc("/setUserPrivilege", RequireAuth(h.setUserPrivilege, h.authTable.AbstractDB, auth_types.AdminPrivileges, auth_types.OneSubmissionRole)).Methods(http.MethodPost)
 
-	router.HandleFunc("/passwd", RequireAuth(h.updatePassword, h.authTable.AbstractDB)).Methods(http.MethodPatch)
+	router.HandleFunc("/passwd", RequireAuthMinimumPrivileges(h.updatePassword, h.authTable.AbstractDB)).Methods(http.MethodPatch)
 }
 
 func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user auth_types.User) {
@@ -215,3 +217,37 @@ func (h *Handler) setUserCreationAllowance(w http.ResponseWriter, r *http.Reques
 
 	h.authTable.SetAbilityForUserCreation(allowUserCreationBool)
 }
+
+func (h *Handler) setUserRole(w http.ResponseWriter, r *http.Request, user auth_types.User){
+	username := r.URL.Query().Get("username")
+	if (!utils.IsStringAlphaNumeric(username)){
+		http.Error(w, "Misformed username.", http.StatusBadRequest)
+		return
+	}
+	role := auth_types.StringToUserRoles(r.URL.Query().Get("role"))
+	if (role.EnumIndex() > auth_types.CuratorRole.EnumIndex()){
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		log.Error().Msgf("User %s just tried to set %s to a role higher than Curator!", user.Username, username)
+		return
+	}
+
+	h.authTable.SetUserRole(username, role)
+}
+
+func (h *Handler) setUserPrivilege(w http.ResponseWriter, r *http.Request, user auth_types.User){
+	username := r.URL.Query().Get("username")
+	if (!utils.IsStringAlphaNumeric(username)){
+		http.Error(w, "Misformed username.", http.StatusBadRequest)
+		return
+	}
+
+	privilege := auth_types.StringToUserPrivileges(r.URL.Query().Get("privilege"))
+	if (privilege.EnumIndex() > auth_types.AdminPrivileges.EnumIndex()){
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		log.Error().Msgf("User %s just tried to set %s to a role higher than Admin!", user.Username, username)
+		return
+	}
+
+	h.authTable.SetUserPrivilege(username, privilege)
+}
+

@@ -38,6 +38,14 @@ func (ur UserRoles) EnumIndex() int {
 }
 func StringToUserRoles(s string) UserRoles {
 	switch s {
+	case userRolesMap[UnlimitedRole.EnumIndex()]:
+		return UnlimitedRole
+	case userRolesMap[TrustedCuratorRole.EnumIndex()]:
+		return TrustedCuratorRole
+	case userRolesMap[CuratorRole.EnumIndex()]:
+		return CuratorRole
+	case userRolesMap[OneSubmissionRole.EnumIndex()]:
+		return OneSubmissionRole
 	case userRolesMap[VoterRole.EnumIndex()]:
 		return VoterRole
 	default:
@@ -63,6 +71,12 @@ var userPrivilegesMap = map[int]string{
 
 func StringToUserPrivileges(s string) UserPrivileges {
 	switch s {
+	case userPrivilegesMap[OwnerPrivileges.EnumIndex()]:
+		return OwnerPrivileges
+	case userPrivilegesMap[AdminPrivileges.EnumIndex()]:
+		return AdminPrivileges
+	case userPrivilegesMap[ModeratorPrivileges.EnumIndex()]:
+		return ModeratorPrivileges
 	case userPrivilegesMap[NoPrivileges.EnumIndex()]:
 		return NoPrivileges
 	default:

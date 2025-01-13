@@ -24,7 +24,6 @@ var allEndPoints = []struct {
 	{Endpoint: "/user", RequestType: http.MethodDelete, RequiresAuth: true},
 	{Endpoint: "/logout", RequestType: http.MethodPost, RequiresAuth: true},
 	{Endpoint: "/passwd", RequestType: http.MethodPatch, RequiresAuth: true},
-	{Endpoint: "/allowUserCreation", RequestType: http.MethodPost, RequiresAuth: true},
 
 	{Endpoint: "/login", RequestType: http.MethodPost, RequiresAuth: false},
 	{Endpoint: "/register", RequestType: http.MethodPost, RequiresAuth: false},

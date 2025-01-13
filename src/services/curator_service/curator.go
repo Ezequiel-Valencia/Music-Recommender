@@ -21,7 +21,7 @@ func NewHandler(mdb *music_table.MusicTable) *Handler {
 }
 
 func (h *Handler) RegisterCuratorRoutes(router *mux.Router) {
-	router.HandleFunc("/submitMusic", auth.RequireAuth(h.submitMusic, h.musicDB.AbstractDB)).Methods("POST")
+	router.HandleFunc("/submitMusic", auth.RequireAuth(h.submitMusic, h.musicDB.AbstractDB, auth_types.NoPrivileges, auth_types.OneSubmissionRole)).Methods("POST")
 }
 
 func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_types.User) {

@@ -15,7 +15,7 @@ import (
 
 type AuthHandlerFunc func(w http.ResponseWriter, r *http.Request, user auth_types.User)
 
-func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc {
+func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed auth_types.UserPrivileges, minRoleAllowed auth_types.UserRoles) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Do you even have a session cookie?
 		encodedSessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
@@ -35,10 +35,22 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFu
 			return
 		}
 
+		privilegeToHigh := user.UserPrivileges.EnumIndex() < minPrivAllowed.EnumIndex()
+		roleToHigh := user.UserRole.EnumIndex() < minRoleAllowed.EnumIndex()
+		if (privilegeToHigh || roleToHigh){
+			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
+			return
+		}
+
 		// If all is true continue
 		handlerFunc(w, r, user)
 	}
 }
+
+func RequireAuthMinimumPrivileges(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc{
+	return RequireAuth(handlerFunc, adb, auth_types.NoPrivileges, auth_types.VoterRole)
+}
+
 
 // CSRF Has to be set as a header through JS. Otherwise it's still vulnerable to CSRF. Based on assumption that malicious user can't run
 // scripts on browser that impersonate origin of my domain
