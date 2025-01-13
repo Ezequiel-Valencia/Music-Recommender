@@ -65,3 +65,18 @@ func (mdb AuthTable) GetUserStructFromEmail(providedEmail string) auth_types.Use
 		UserPrivileges: auth_types.StringToUserPrivileges(user_privileges),
 	}
 }
+
+func (mdb AuthTable) SetUserRole(username string, userRole auth_types.UserRoles) {
+	_, err := mdb.db.Exec("UPDATE users SET user_role = $1 WHERE username = $2", userRole.String(), username)
+	if err != nil{
+		log.Err(err).Msg("Can't set user role")
+	}
+}
+
+func (mdb AuthTable) SetUserPrivilege(username string, userPrivilege auth_types.UserPrivileges) {
+	_, err := mdb.db.Exec("UPDATE users SET user_privileges = $1 WHERE username = $2", userPrivilege.String(), username)
+	if err != nil{
+		log.Err(err).Msg("Can't set user role")
+	}
+}
+
