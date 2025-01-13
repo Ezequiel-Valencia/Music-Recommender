@@ -3,9 +3,9 @@ package ranking_table
 import (
 	"database/sql"
 	"music-recommender/config"
-	"music-recommender/db"
 	"music-recommender/types/communication_types"
 	"music-recommender/types/internal_types"
+	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils"
 	"time"
 
@@ -68,22 +68,22 @@ func (mdb RankingTable) GetTodaysRanking() communication_types.TodaysRankingPayl
 		todaysRanking.RankingMap[order] += float64(numVotes)
 	}
 	for key := range 3 {
-		if (totalVotes == 0){
+		if totalVotes == 0 {
 			todaysRanking.RankingMap[key] = 0
-		} else{
+		} else {
 			todaysRanking.RankingMap[key] = todaysRanking.RankingMap[key] / float64(totalVotes)
 		}
 	}
 	return todaysRanking
 }
 
-func (mdb RankingTable) UserAlreadyVoteToday(user db.User) bool {
+func (mdb RankingTable) UserAlreadyVoteToday(user auth_types.User) bool {
 	var lastVote time.Time
 	mdb.db.QueryRow("SELECT last_vote FROM users WHERE user_id = $1", user.UserId).Scan(&lastVote)
 	return !isYesterdayOrBefore(lastVote)
 }
 
-func (mdb RankingTable) UpdateTodaysRanking(submitVote communication_types.SubmitVotePayload, user db.User) {
+func (mdb RankingTable) UpdateTodaysRanking(submitVote communication_types.SubmitVotePayload, user auth_types.User) {
 	_, err := mdb.db.Exec("UPDATE users SET last_vote = $1 WHERE user_id = $2",
 		time.Now().Format(config.StaticEnvs.TimeFormat), user.UserId)
 

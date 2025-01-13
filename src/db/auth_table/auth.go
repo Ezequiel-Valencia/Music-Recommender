@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"music-recommender/db"
+	"music-recommender/types/internal_types/auth_types"
 
 	"github.com/rs/zerolog/log"
 )
@@ -20,9 +21,7 @@ func CreateAuthTableDriver(db *sql.DB, abd *db.AbstractDB) *AuthTable {
 	return &AuthTable{db: db, AbstractDB: abd}
 }
 
-
-
-func (mdb AuthTable) GenerateAndStoreSessionID(user db.User, timeCreated string) (string, string, error) {
+func (mdb AuthTable) GenerateAndStoreSessionID(user auth_types.User, timeCreated string) (string, string, error) {
 	newToken := GenerateSecureToken(50)
 	csrfToken := GenerateSecureToken(50)
 	const executeString = `INSERT INTO sessions(user_id, session_id, csrf_token, creation_date) 
@@ -36,7 +35,7 @@ func (mdb AuthTable) GenerateAndStoreSessionID(user db.User, timeCreated string)
 	return newToken, csrfToken, nil
 }
 
-func (at AuthTable) RemoveSessionTokens(user db.User, sessionid string) error {
+func (at AuthTable) RemoveSessionTokens(user auth_types.User, sessionid string) error {
 	res, err := at.db.Exec("DELETE FROM sessions WHERE user_id = $1 AND session_id = $2", user.UserId, sessionid)
 	rowsAffected, _ := res.RowsAffected()
 	if rowsAffected == 0 {
@@ -47,7 +46,7 @@ func (at AuthTable) RemoveSessionTokens(user db.User, sessionid string) error {
 	return err
 }
 
-func (at AuthTable) UpdatePassword(user db.User, hashedPassword string) {
+func (at AuthTable) UpdatePassword(user auth_types.User, hashedPassword string) {
 	_, err := at.db.Exec("UPDATE users SET password_hash = $1 WHERE user_id = $2", hashedPassword, user.UserId)
 	if err != nil {
 		log.Err(err).Msg("DB Error: Update password")
@@ -61,4 +60,3 @@ func GenerateSecureToken(length int) string {
 	}
 	return base64.URLEncoding.EncodeToString(bytesArray) //Base 64 is a set of characters safe for HTTP traffic
 }
-

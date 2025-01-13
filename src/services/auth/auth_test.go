@@ -6,8 +6,8 @@ import (
 	"io"
 	"log"
 	"music-recommender/config"
-	"music-recommender/db"
 	"music-recommender/db/auth_table"
+	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils/t_utils"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +70,7 @@ func TestLogin(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	hp, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
 
 	for _, tc := range invalidUsernameOrPasswordTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -148,7 +148,7 @@ func TestLogOut(t *testing.T) {
 		case noCookie:
 		}
 
-		handler.logout(testRecorder, request, db.User{UserId: 1})
+		handler.logout(testRecorder, request, auth_types.User{UserId: 1})
 		user := handler.authTable.GetUserStructFromUsername("Ezequiel")
 
 		sessionUser, _ := handler.authTable.AbstractDB.GetUserFromSessionID(decodedSession, "", false)
@@ -221,7 +221,7 @@ func TestRegister(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	hp, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
 
 	for _, tc := range registerTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -316,7 +316,7 @@ func TestRequireAuth(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
-	handler.authTable.CreateUser("Ezequiel", "email", "pw", "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "email", "pw", "", auth_types.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
 	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
 	endPointWithAuth := RequireAuth(handler.deleteUser, handler.authTable.AbstractDB)
@@ -449,8 +449,8 @@ func TestPasswordUpdate(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	ogPassword, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "Ezequiel@gmail.com", ogPassword, "", db.LocalUserCreationSource.String())
-	handler.authTable.CreateUser("Ezequiel2", "Ezequiel2@gmail.com", ogPassword, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "Ezequiel@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel2", "Ezequiel2@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
 
 	// Both passwords are the same, nothing has changed
@@ -474,7 +474,7 @@ func TestMaxNumberOfSessions(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	hashedPW, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hashedPW, "", db.LocalUserCreationSource.String())
+	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hashedPW, "", auth_types.LocalUserCreationSource.String())
 
 	request := httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake@gmail.com"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -534,17 +534,17 @@ func TestDisablingUserCreation(t *testing.T) {
 	_, dbPointer := t_utils.GetTestDB()
 	defer t_utils.ResetTestDB()
 
-	owner := db.User{Username: "Ezequiel", UserRole: db.UnlimitedRole,
-		UserPrivileges: db.OwnerPrivileges, UserId: 1}
-	badActor := db.User{Username: "Couch", UserRole: db.CuratorRole,
-		UserPrivileges: db.AdminPrivileges, UserId: 2}
+	owner := auth_types.User{Username: "Ezequiel", UserRole: auth_types.UnlimitedRole,
+		UserPrivileges: auth_types.OwnerPrivileges, UserId: 1}
+	badActor := auth_types.User{Username: "Couch", UserRole: auth_types.CuratorRole,
+		UserPrivileges: auth_types.AdminPrivileges, UserId: 2}
 	t_utils.CreateFakeUser(dbPointer, &owner, "pass")
 	t_utils.CreateFakeUser(dbPointer, &badActor, "pass")
 
 	for _, tc := range disableCreationCheck {
 		rr := httptest.NewRecorder()
 		var request *http.Request
-		var testUser db.User
+		var testUser auth_types.User
 		switch tc.allowanceState {
 		case notPrivilegedUser:
 			testUser = badActor

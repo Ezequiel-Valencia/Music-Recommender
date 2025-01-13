@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"music-recommender/config"
 	"music-recommender/db"
+	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils"
 	"net/http"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthHandlerFunc func(w http.ResponseWriter, r *http.Request, user db.User)
+type AuthHandlerFunc func(w http.ResponseWriter, r *http.Request, user auth_types.User)
 
 func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"music-recommender/config"
 	"music-recommender/db"
+	"music-recommender/types/internal_types/auth_types"
 	"net/url"
 	"strconv"
 	"time"
@@ -61,7 +62,7 @@ func GetTestDB() (*db.AbstractDB, *sql.DB) {
 
 // Completely destroys everything regarding the containers and DB
 func TearDownTestDB() {
-	if (dbPointer != nil && adb != nil && pool != nil && resource != nil){
+	if dbPointer != nil && adb != nil && pool != nil && resource != nil {
 		dbPointer.Close()
 		adb = nil
 		dbPointer = nil
@@ -99,8 +100,7 @@ func GenerateRandomRuneString(lenOfRunes int, alphaNumericCompliant bool) string
 	return string(b)
 }
 
-
-func CreateFakeUser(db *sql.DB, user *db.User, nonHashedPasswd string){
+func CreateFakeUser(db *sql.DB, user *auth_types.User, nonHashedPasswd string) {
 	const executeString = `INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, 
 		creation_date, user_role, user_privileges) 
 	VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
@@ -108,26 +108,24 @@ func CreateFakeUser(db *sql.DB, user *db.User, nonHashedPasswd string){
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
 	_, err := db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
-	if (err != nil){
+	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func CreateHTTPBodyURLEncoded(body string) io.Reader{
+func CreateHTTPBodyURLEncoded(body string) io.Reader {
 	b64 := url.PathEscape(body)
 	return bytes.NewBufferString(b64)
 }
 
+var TestUserBob auth_types.User = auth_types.User{Username: "Bob", UserId: 1,
+	Email: "bob@gmail.com", CreationSource: auth_types.LocalUserCreationSource,
+	CreationDate: time.Now(), UserRole: auth_types.VoterRole, UserPrivileges: auth_types.NoPrivileges}
 
-var TestUserBob db.User = db.User{Username: "Bob", UserId: 1, 
-Email: "bob@gmail.com", CreationSource: db.LocalUserCreationSource,
-CreationDate: time.Now(), UserRole: db.VoterRole, UserPrivileges: db.NoPrivileges}
+var TestUserCuratorModerator auth_types.User = auth_types.User{Username: "Admin", UserId: 2,
+	Email: "admin@gmail.com", CreationSource: auth_types.LocalUserCreationSource,
+	CreationDate: time.Now(), UserRole: auth_types.CuratorRole, UserPrivileges: auth_types.ModeratorPrivileges}
 
-var TestUserCuratorModerator db.User = db.User{Username: "Admin", UserId: 2, 
-Email: "admin@gmail.com", CreationSource: db.LocalUserCreationSource,
-CreationDate: time.Now(), UserRole: db.CuratorRole, UserPrivileges: db.ModeratorPrivileges}
-
-var TestUserOwner db.User = db.User{Username: "Owner", UserId: 3, 
-Email: "owner@gmail.com", CreationSource: db.LocalUserCreationSource,
-CreationDate: time.Now(), UserRole: db.UnlimitedRole, UserPrivileges: db.OwnerPrivileges}
-
+var TestUserOwner auth_types.User = auth_types.User{Username: "Owner", UserId: 3,
+	Email: "owner@gmail.com", CreationSource: auth_types.LocalUserCreationSource,
+	CreationDate: time.Now(), UserRole: auth_types.UnlimitedRole, UserPrivileges: auth_types.OwnerPrivileges}

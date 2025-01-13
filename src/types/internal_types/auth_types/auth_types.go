@@ -1,4 +1,4 @@
-package db
+package auth_types
 
 import "time"
 

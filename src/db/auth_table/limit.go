@@ -2,15 +2,14 @@ package auth_table
 
 import (
 	"music-recommender/config"
-	"music-recommender/db"
+	"music-recommender/types/internal_types/auth_types"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
-
-func (at AuthTable) ReachedMaxNumberOfSessionsForUser(user db.User) bool {
+func (at AuthTable) ReachedMaxNumberOfSessionsForUser(user auth_types.User) bool {
 	res, err := at.db.Exec("SELECT session_id FROM sessions WHERE user_id = $1", user.UserId)
 	numRes, _ := res.RowsAffected()
 	if err != nil || numRes >= 10 {
@@ -49,5 +48,3 @@ func (at AuthTable) CorrectEmailAndPassword(email string, password string) bool 
 	err = bcrypt.CompareHashAndPassword([]byte(dbHashedPassword), []byte(password))
 	return err == nil
 }
-
-

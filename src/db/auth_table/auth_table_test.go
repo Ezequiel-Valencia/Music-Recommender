@@ -1,7 +1,7 @@
 package auth_table
 
 import (
-	"music-recommender/db"
+	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils/t_utils"
 	"testing"
 
@@ -11,7 +11,7 @@ import (
 var uniqueUsernameAndEmailCases = []struct {
 	testCase string
 	username string
-	email string
+	email    string
 }{
 	{
 		"Email Exists",
@@ -45,13 +45,12 @@ func TestDisablingUserCreation(t *testing.T) {
 
 	assert.True(t, at.IsTheUsernameAndEmailUnique(username, email))
 
-	t_utils.CreateFakeUser(dbPointer,&db.User{Username: username, Email: email},"password")
+	t_utils.CreateFakeUser(dbPointer, &auth_types.User{Username: username, Email: email}, "password")
 
-	for _, tc := range uniqueUsernameAndEmailCases{
+	for _, tc := range uniqueUsernameAndEmailCases {
 		assert.False(t, at.IsTheUsernameAndEmailUnique(tc.username, tc.email))
 	}
 
 	assert.True(t, at.IsTheUsernameAndEmailUnique("hello2", "fake2@gmail.com"))
 
 }
-

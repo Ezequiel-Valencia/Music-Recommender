@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	api "music-recommender/api"
 	"music-recommender/db"
+	"music-recommender/types/internal_types/auth_types"
 	"net/http"
 	"time"
 
@@ -25,7 +26,6 @@ func main() {
 	log.Info().Msg("Server has stopped.")
 }
 
-
 func DailyTaskSet(db *sql.DB) {
 	for {
 		log.Info().Msg("Executing Daily Server Maintenance Tasks")
@@ -36,7 +36,6 @@ func DailyTaskSet(db *sql.DB) {
 		time.Sleep(24 * time.Hour)
 	}
 }
-
 
 func dbCleanUp(db *sql.DB) {
 	res, err := db.Exec("DELETE FROM sessions WHERE creation_date < CURRENT_DATE - interval '150 days'")
@@ -50,7 +49,7 @@ func dbCleanUp(db *sql.DB) {
 }
 
 func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
-	res, err := dbPointer.Exec("SELECT * FROM users WHERE user_privileges = $1 OR user_role = $2", db.OwnerPrivileges, db.UnlimitedRole)
+	res, err := dbPointer.Exec("SELECT * FROM users WHERE user_privileges = $1 OR user_role = $2", auth_types.OwnerPrivileges, auth_types.UnlimitedRole)
 	resNum, _ := res.RowsAffected()
 	if err != nil {
 		log.Err(err).Msg("Error occurred checking if there is more than one Owner")
@@ -60,5 +59,3 @@ func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
 
 	return resNum > 1 || err != nil
 }
-
-
