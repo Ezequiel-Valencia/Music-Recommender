@@ -107,7 +107,10 @@ func CreateFakeUser(db *sql.DB, user *db.User, nonHashedPasswd string){
 
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
-	db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+	_, err := db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+	if (err != nil){
+		log.Fatal(err)
+	}
 }
 
 func CreateHTTPBodyURLEncoded(body string) io.Reader{
