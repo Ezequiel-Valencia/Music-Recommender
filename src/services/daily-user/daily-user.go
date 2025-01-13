@@ -51,7 +51,7 @@ func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user db.Us
 	}
 
 	h.rankingTable.UpdateTodaysRanking(vote, user)
-	var todaysRanking *communication_types.TodaysRankingPayload = h.rankingTable.GetTodaysRanking()
+	var todaysRanking communication_types.TodaysRankingPayload = h.rankingTable.GetTodaysRanking()
 	utils.WriteJSON(w, todaysRanking, 200)
 }
 
