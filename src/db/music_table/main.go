@@ -2,8 +2,10 @@ package music_table
 
 import (
 	"database/sql"
+	"music-recommender/config"
 	"music-recommender/db"
 	"music-recommender/types/communication_types"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -20,10 +22,10 @@ func CreateMusicTableDriver(db *sql.DB, abd *db.AbstractDB) *MusicTable{
 }
 
 func (mdb MusicTable) InsertNewSong(musicEntry *communication_types.SubmitSong, user db.User) {
-	const executeString = `INSERT INTO music(name, artist, songURL, genre, subgenre, description, submitter_id) 
+	const executeString = `INSERT INTO music(insert_date, name, artist, songURL, genre, subgenre, submitter_id) 
 	VALUES($1, $2, $3, $4, $5, $6, $7)`
-	_, err := mdb.db.Exec(executeString, musicEntry.Name, musicEntry.Artist, musicEntry.SongURL,
-		musicEntry.Genre, musicEntry.Subgenre, musicEntry.Description, user.UserId)
+	_, err := mdb.db.Exec(executeString, time.Now().Format(config.StaticEnvs.TimeFormat), musicEntry.Name, musicEntry.Artist, musicEntry.SongURL,
+		musicEntry.Genre, musicEntry.Subgenre, user.UserId)
 	if err != nil {
 		log.Err(err).Msg("Can't insert song.")
 	}

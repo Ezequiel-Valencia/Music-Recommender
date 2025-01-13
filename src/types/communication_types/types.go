@@ -11,14 +11,13 @@ type SubmitSong struct {
 	SongURL string		
 	Genre string
 	Subgenre string
-	Description string
 }
 
 /*
 Song Order -> Percentage of votes
 */
 type TodaysRankingPayload struct {
-	RankingMap map[int]int
+	RankingMap map[int]float64
 }
 
 type MusicPayloadEntry struct{
