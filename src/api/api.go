@@ -35,7 +35,7 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 		// Logger: &log.Logger,
 	})
 
-	anonymous_user_handler := daily_user.NewHandler(ranking_table.CreateRankingTableDriver(db), abd)
+	anonymous_user_handler := daily_user.NewHandler(ranking_table.CreateTodaysRankingDriver(db), abd)
 	anonymous_user_handler.RegisterAnonymousUserRoutes(subrouter)
 
 	curator_handler := curator_service.NewHandler(music_table.CreateMusicTableDriver(db, abd))

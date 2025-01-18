@@ -12,46 +12,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type RankingTable struct {
+type TodaysRankingDriver struct {
 	db *sql.DB
 }
 
-func CreateRankingTableDriver(db *sql.DB) *RankingTable {
-	return &RankingTable{db: db}
+
+func CreateTodaysRankingDriver(db *sql.DB) *TodaysRankingDriver {
+	return &TodaysRankingDriver{db: db}
 }
 
-func (mdb RankingTable) SetTodaysRanking(submission *internal_types.TodaysRankingSubmission) {
-	if len(submission.SongIDs) > 3 {
-		log.Error().Msg("More than three songs will be set for ranking.")
-		return
-	}
-
-	for i, songID := range submission.SongIDs {
-		var name, url, artist string
-		err := mdb.db.QueryRow("SELECT name, artist, songURL FROM music WHERE id = $1", songID).Scan(
-			&name, &artist, &url,
-		)
-		if err != nil {
-			log.Err(err).Msg("Problem setting todays ranking.")
-			return
-		}
-		_, err = mdb.db.Exec(`INSERT INTO todaysRanking(
-			song_id, curator_name, description, song_name, song_artist,
-			song_path_resource, song_order
-		) 
-		VALUES($1, $2, $3, $4, $5, $6, $7)`,
-			songID, submission.CuratorName, submission.Description, name, artist,
-			utils.GetResourceFromYouTubeLink(&url), i,
-		)
-
-		if err != nil {
-			log.Err(err).Msg("Problem setting todays ranking.")
-			return
-		}
-	}
-}
-
-func (mdb RankingTable) GetTodaysRanking() communication_types.TodaysRankingPayload {
+func (mdb TodaysRankingDriver) GetTodaysVotes() communication_types.TodaysRankingPayload {
 	res, err := mdb.db.Query("SELECT song_order, num_votes FROM todaysRanking")
 	if err != nil {
 		log.Err(err).Msg("Can't get todays ranking.")
@@ -77,13 +47,13 @@ func (mdb RankingTable) GetTodaysRanking() communication_types.TodaysRankingPayl
 	return todaysRanking
 }
 
-func (mdb RankingTable) UserAlreadyVoteToday(user auth_types.User) bool {
+func (mdb TodaysRankingDriver) UserAlreadyVoteToday(user auth_types.User) bool {
 	var lastVote time.Time
 	mdb.db.QueryRow("SELECT last_vote FROM users WHERE user_id = $1", user.UserId).Scan(&lastVote)
 	return !isYesterdayOrBefore(lastVote)
 }
 
-func (mdb RankingTable) UpdateTodaysRanking(submitVote communication_types.SubmitVotePayload, user auth_types.User) {
+func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_types.SubmitVotePayload, user auth_types.User) {
 	_, err := mdb.db.Exec("UPDATE users SET last_vote = $1 WHERE user_id = $2",
 		time.Now().Format(config.StaticEnvs.TimeFormat), user.UserId)
 
@@ -99,9 +69,9 @@ func (mdb RankingTable) UpdateTodaysRanking(submitVote communication_types.Submi
 	}
 }
 
-func (mdb RankingTable) GetTodaysMusic() *communication_types.TodaysMusicPayload {
+func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusicPayload {
 
-	rows, err := mdb.db.Query(`SELECT song_id, curator_name, description, song_order, song_name, song_artist, song_path_resource
+	rows, err := mdb.db.Query(`SELECT song_id, curator_id, description, song_order, song_name, song_artist, song_path_resource
 	FROM todaysRanking`)
 	if err != nil {
 		log.Err(err).Msg("Can't Get Todays Music")
@@ -111,22 +81,76 @@ func (mdb RankingTable) GetTodaysMusic() *communication_types.TodaysMusicPayload
 	var musicPayload communication_types.TodaysMusicPayload
 	musicPayload.MusicEntries = []communication_types.MusicPayloadEntry{}
 
+	var curatorID int
 	for rows.Next() {
 		var songID, order int
-		var curatorName, description, songName, songArtist, songResource string
-		rows.Scan(&songID, &curatorName, &description, &order, &songName, &songArtist, &songResource)
+		var description, songName, songArtist, songResource string
+		rows.Scan(&songID, &curatorID, &description, &order, &songName, &songArtist, &songResource)
 		musicPayload.CuratorDescription = description
-		musicPayload.CuratorName = curatorName
 
 		musicEntry := communication_types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
 		musicPayload.MusicEntries = append(musicPayload.MusicEntries, musicEntry)
 	}
+	var curatorName string
+	mdb.db.QueryRow(`SELECT username FROM users WHERE user_id = $1`, curatorID).Scan(&curatorName)
+	musicPayload.CuratorName = curatorName
 
 	return &musicPayload
 }
 
-func (mdb RankingTable) GetCalendarsMusic() *communication_types.CalendarPayload {
-	return &communication_types.CalendarPayload{}
+// Dumb for now
+func (mdb TodaysRankingDriver) SelectNewSongs() {
+	var newSongListTime time.Time
+	mdb.db.QueryRow(`SELECT date_submitted 
+	FROM toBeRanked ORDER BY RANDOM()
+	LIMIT 1`).Scan(&newSongListTime)
+
+	
+	sqlRows, _ := mdb.db.Query(`SELECT song_id, description, curator_id FROM toBeRanked 
+		WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
+	
+	var whatWillBeRankedToday internal_types.TodaysRankingSubmission = internal_types.TodaysRankingSubmission{}
+	for sqlRows.Next(){
+		var description string
+		var curatorId, songId int
+		sqlRows.Scan(&songId, &description, &curatorId)
+		whatWillBeRankedToday.CuratorId = curatorId
+		whatWillBeRankedToday.Description = description
+		whatWillBeRankedToday.SongIDs = append(whatWillBeRankedToday.SongIDs, songId)
+	}
+
+	mdb.setTodaysRanking(&whatWillBeRankedToday)
+}
+
+func (mdb TodaysRankingDriver) setTodaysRanking(submission *internal_types.TodaysRankingSubmission) {
+	if len(submission.SongIDs) > 3 {
+		log.Error().Msg("More than three songs will be set for ranking.")
+		return
+	}
+
+	for i, songID := range submission.SongIDs {
+		var name, url, artist string
+		err := mdb.db.QueryRow("SELECT name, artist, songURL FROM music WHERE id = $1", songID).Scan(
+			&name, &artist, &url,
+		)
+		if err != nil {
+			log.Err(err).Msg("Problem setting todays ranking.")
+			return
+		}
+		_, err = mdb.db.Exec(`INSERT INTO todaysRanking(
+			song_id, curator_id, description, song_name, song_artist,
+			song_path_resource, song_order
+		) 
+		VALUES($1, $2, $3, $4, $5, $6, $7)`,
+			songID, submission.CuratorId, submission.Description, name, artist,
+			utils.GetResourceFromYouTubeLink(&url), i,
+		)
+
+		if err != nil {
+			log.Err(err).Msg("Problem setting todays ranking.")
+			return
+		}
+	}
 }
 
 func isYesterdayOrBefore(date time.Time) bool {

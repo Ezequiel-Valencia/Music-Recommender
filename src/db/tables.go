@@ -10,6 +10,22 @@ import (
 
 // Good enough table SCHEMA for now
 
+
+// User Identity instead of serial for UID's cause it's SQL compliant
+// https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
+const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
+	user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+	username TEXT NOT NULL,
+	email TEXT NOT NULL,
+	password_hash TEXT NOT NULL,
+	subject_identifier TEXT,
+	creation_source TEXT NOT NULL,
+	creation_date TIMESTAMP NOT NULL,
+	user_role TEXT NOT NULL,
+	user_privileges TEXT NOT NULL,
+	last_vote TIMESTAMP
+)`
+
 /*
 rank_id is a comma separated list of the foreign keys associated with ranking table
 
@@ -36,7 +52,7 @@ const createToBeRankedTable = `CREATE TABLE IF NOT EXISTS toBeRanked (
 	song_id INTEGER references music(id),
 	description TEXT NOT NULL,
 	curator_id INTEGER references users(user_id),
-	group_id INTEGER NOT NULL
+	date_submitted TIMESTAMP NOT NULL
 )`
 
 /*
@@ -49,10 +65,11 @@ Better yet assign the same day to all rankings
 
 const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranked (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+	song_id INTEGER references music(id),
+	curator_id INTEGER references users(user_id),
 	date_ranked TIMESTAMP NOT NULL,
 	num_votes INTEGER,
-	winner BOOLEAN,
-	ranking TEXT
+	winner BOOLEAN
 )`
 
 /*
@@ -62,7 +79,7 @@ Clean the table, and place the new songs which will be ranked within the table
 */
 const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRanking (
 	song_id INTEGER references music(id),
-	curator_name TEXT NOT NULL,
+	curator_id INTEGER references users(user_id),
 	description TEXT NOT NULL,
 	song_name TEXT NOT NULL,
 	song_artist TEXT NOT NULL,
@@ -71,20 +88,7 @@ const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRankin
 	num_votes INTEGER DEFAULT 0
 )`
 
-// User Identity instead of serial for UID's cause it's SQL compliant
-// https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
-const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
-	user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
-	username TEXT NOT NULL,
-	email TEXT NOT NULL,
-	password_hash TEXT NOT NULL,
-	subject_identifier TEXT,
-	creation_source TEXT NOT NULL,
-	creation_date TIMESTAMP NOT NULL,
-	user_role TEXT NOT NULL,
-	user_privileges TEXT NOT NULL,
-	last_vote TIMESTAMP
-)`
+
 
 const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
 	entry INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
