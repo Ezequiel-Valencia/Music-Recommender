@@ -1,13 +1,9 @@
 package ranking_table
 
 import (
-	"database/sql"
 	"fmt"
-	"music-recommender/db"
-	"music-recommender/db/music_table"
 	"music-recommender/types/communication_types"
 	"music-recommender/types/internal_types"
-	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils/t_utils"
 	"testing"
 
@@ -22,7 +18,7 @@ func TestOnlyOneVote(t *testing.T) {
 
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserBob, "password123")
 	assert.False(t, rankTable.UserAlreadyVoteToday(t_utils.TestUserBob))
-	fillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
+	t_utils.FillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 
 	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 1}, t_utils.TestUserBob)
 
@@ -36,7 +32,7 @@ func TestTodaysRanking(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserBob, "password123")
-	fillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
+	t_utils.FillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 	const description string = "I chose these songs for testing."
 	songIDs := [3]int{1, 2, 3}
 	rankTable.setTodaysRanking(&internal_types.TodaysRankingSubmission{CuratorId: t_utils.TestUserBob.UserId, Description: description,
@@ -60,7 +56,7 @@ func TestUpdateRanking(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserBob, "password123")
-	fillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
+	t_utils.FillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 	rankTable.setTodaysRanking(&internal_types.TodaysRankingSubmission{CuratorId: t_utils.TestUserBob.UserId, Description: "yo", SongIDs: []int{1, 2, 3}})
 
 	currentRanking := rankTable.GetTodaysVotes()
@@ -78,11 +74,4 @@ func TestUpdateRanking(t *testing.T) {
 	assert.Equal(t, float64(0.0), currentRanking.RankingMap[2])
 }
 
-func fillDBWithFakeSongs(dbPointer *sql.DB, adb *db.AbstractDB, user *auth_types.User) {
-	musicDriver := music_table.CreateMusicTableDriver(dbPointer, adb)
-	for i := range 10 {
-		submitSong := communication_types.SubmitSong{Name: fmt.Sprintf("Song %d", i),
-			Artist: fmt.Sprintf("Artist %d", i)}
-		musicDriver.InsertNewSong(&submitSong, *user)
-	}
-}
+

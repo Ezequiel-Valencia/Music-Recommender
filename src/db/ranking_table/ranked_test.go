@@ -17,7 +17,7 @@ func TestInsertRankedSongs(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserBob, "password")
-	fillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
+	t_utils.FillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 	ranked_songs := []internal_types.RankedSong{}
 	for i := range 3{
 		ranked_songs = append(ranked_songs, internal_types.RankedSong{
@@ -52,7 +52,7 @@ func TestCalculateTodaysRank(t *testing.T){
 	defer t_utils.ResetTestDB()
 
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserBob, "password")
-	fillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
+	t_utils.FillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 
 	todaysSubmission := internal_types.TodaysRankingSubmission{Description: "Fake", CuratorId: t_utils.TestUserBob.UserId}
 	for i := range 3{
