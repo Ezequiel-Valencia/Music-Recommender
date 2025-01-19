@@ -53,6 +53,7 @@ func (mdb TodaysRankingDriver) UserAlreadyVoteToday(user auth_types.User) bool {
 	return !isYesterdayOrBefore(lastVote)
 }
 
+// Song order is based on the 0 indexing of the three songs being voted on.
 func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_types.SubmitVotePayload, user auth_types.User) {
 	_, err := mdb.db.Exec("UPDATE users SET last_vote = $1 WHERE user_id = $2",
 		time.Now().Format(config.StaticEnvs.TimeFormat), user.UserId)
@@ -63,7 +64,7 @@ func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_ty
 	}
 
 	_, err = mdb.db.Exec("UPDATE todaysRanking SET num_votes = num_votes + 1 WHERE song_order = $1",
-		submitVote.SongNumber)
+		submitVote.SongOrder)
 	if err != nil {
 		log.Err(err).Msg("Update ranking did not work")
 	}

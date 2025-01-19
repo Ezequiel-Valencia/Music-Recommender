@@ -43,7 +43,7 @@ func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user auth_
 		return
 	}
 
-	if vote.SongNumber > 2 || vote.SongNumber < 0 {
+	if vote.SongOrder > 2 || vote.SongOrder < 0 {
 		http.Error(w, "Bad song choice.", http.StatusNotAcceptable)
 		return
 	}

@@ -18,6 +18,7 @@ func CreateRankedDriver(db *sql.DB) *RankedDriver{
 	return &RankedDriver{dbPointer: db}
 }
 
+// Assumes the top song ID is accurate, and is given directly from Calculate Todays Rank
 func (rd RankedDriver) InsertAlreadyRankedSongs(topSongId int, rankedSongs []internal_types.RankedSong){
 	voteDate := time.Now().AddDate(0, 0, -1)
 	for _, rs := range rankedSongs{

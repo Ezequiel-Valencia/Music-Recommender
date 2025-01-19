@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Users get only a single vote
 func TestOnlyOneVote(t *testing.T) {
 	adb, dbPointer := t_utils.GetTestDB()
 	rankTable := TodaysRankingDriver{db: dbPointer}
@@ -23,11 +24,12 @@ func TestOnlyOneVote(t *testing.T) {
 	assert.False(t, rankTable.UserAlreadyVoteToday(t_utils.TestUserBob))
 	fillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 
-	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongNumber: 1}, t_utils.TestUserBob)
+	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 1}, t_utils.TestUserBob)
 
 	assert.True(t, rankTable.UserAlreadyVoteToday(t_utils.TestUserBob))
 }
 
+// Correctly set and get todays ranking
 func TestTodaysRanking(t *testing.T) {
 	adb, dbPointer := t_utils.GetTestDB()
 	rankTable := TodaysRankingDriver{db: dbPointer}
@@ -51,6 +53,7 @@ func TestTodaysRanking(t *testing.T) {
 	}
 }
 
+// Correctly update the vote counts, and retrieve their percentage
 func TestUpdateRanking(t *testing.T) {
 	adb, dbPointer := t_utils.GetTestDB()
 	rankTable := TodaysRankingDriver{db: dbPointer}
@@ -63,12 +66,12 @@ func TestUpdateRanking(t *testing.T) {
 	currentRanking := rankTable.GetTodaysVotes()
 	assert.Equal(t, map[int]float64{0: 0, 1: 0, 2: 0}, currentRanking.RankingMap)
 
-	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongNumber: 1}, t_utils.TestUserBob)
+	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 1}, t_utils.TestUserBob)
 	currentRanking = rankTable.GetTodaysVotes()
 	assert.Equal(t, float64(1), currentRanking.RankingMap[1])
 	assert.Equal(t, float64(0), currentRanking.RankingMap[0])
 
-	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongNumber: 0}, t_utils.TestUserBob)
+	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 0}, t_utils.TestUserBob)
 	currentRanking = rankTable.GetTodaysVotes()
 	assert.Equal(t, float64(0.5), currentRanking.RankingMap[1])
 	assert.Equal(t, float64(0.5), currentRanking.RankingMap[0])

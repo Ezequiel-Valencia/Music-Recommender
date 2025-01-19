@@ -1,8 +1,8 @@
 package communication_types
 
-
+// From the 0 indexed list of songs presented to the user, which one will be chosen [0 - 2]
 type SubmitVotePayload struct {
-	SongNumber int
+	SongOrder int
 }
 
 type SubmitSong struct {
