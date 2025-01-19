@@ -10,7 +10,6 @@ import (
 
 // Good enough table SCHEMA for now
 
-
 // User Identity instead of serial for UID's cause it's SQL compliant
 // https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
 const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
@@ -23,6 +22,7 @@ const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 	creation_date TIMESTAMP NOT NULL,
 	user_role TEXT NOT NULL,
 	user_privileges TEXT NOT NULL,
+	song_sets_submitted INTEGER NOT NULL DEFAULT(0),
 	last_vote TIMESTAMP
 )`
 
@@ -106,20 +106,27 @@ const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
 ); REVOKE DELETE, TRUNCATE ON server_state FROM public;`
 
 // 0 for table primary key is special value, will not be used and can be assumed as NULL
-func CreateTables(db *sql.DB, testMode bool) error {
+func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
 	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable,
 		createRankingTable, createTodaysRankingTable, serverState, createToBeRankedTable}
-	for _, v := range tables {
+	functions := [...]string{hasUserSubmitCountHitLimit}
+	createDBHelper(db, testMode, tables[:], "Tables")
+	createDBHelper(db, testMode, functions[:], "Functions")
+	log.Info().Msg("Created Tables and Functions")
+	return nil
+}
+
+func createDBHelper(db *sql.DB, testMode bool, creationSet []string, creationType string) error{
+	for _, v := range creationSet {
 		_, err := db.Exec(v)
 		if err != nil {
 			if testMode {
-				log.Err(err).Msg("Table creation error.")
+				log.Err(err).Msgf("%s creation error.", creationType)
 				return err
 			}
-			log.Fatal().AnErr("err", err).Msg("Table Creation Error")
+			log.Fatal().AnErr("err", err).Msgf("%s Creation Error", creationType)
 		}
 	}
-	log.Info().Msg("Created Tables")
 	return nil
 }
 
