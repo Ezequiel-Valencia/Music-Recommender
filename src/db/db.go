@@ -35,7 +35,7 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 		}
 		log.Fatal().Err(err).Msg("Can't connect to db.")
 	}
-	err = CreateTables(db, testMode)
+	err = CreateTablesAndFunctions(db, testMode)
 	initializeOrGetServerState(db)
 	if err != nil {
 		return nil, nil, err
