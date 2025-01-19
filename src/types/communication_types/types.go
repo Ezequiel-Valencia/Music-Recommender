@@ -13,6 +13,11 @@ type SubmitSong struct {
 	Subgenre string
 }
 
+type SubmitSongSet struct {
+	Description string
+	Songs []SubmitSong
+}
+
 /*
 Song Order -> Percentage of votes
 */

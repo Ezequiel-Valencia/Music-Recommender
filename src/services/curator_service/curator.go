@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/log"
 )
 
 type Handler struct {
@@ -26,11 +25,10 @@ func (h *Handler) RegisterCuratorRoutes(router *mux.Router) {
 
 func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	// submit music to be chosen to the data base.
-	var submitSong communication_types.SubmitSong
+	var submitSong communication_types.SubmitSongSet
 	err := utils.DecodeJSONBody(w, r, &submitSong)
 	if err != nil {
-		log.Error().Msg(err.Error())
 		return
 	}
-	h.musicDB.InsertNewSong(&submitSong, user)
+	h.musicDB.InsertSongSet(&submitSong, user)
 }
