@@ -28,7 +28,7 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{config.DynamicEnvs.WebPageDomain},
 		AllowCredentials: true, // Allow cookies from other origins to be sent
-		AllowedHeaders: []string{"x-csrf-token"}, // Allows for the CSRF token to be sent
+		AllowedHeaders: []string{"x-csrf-token", "content-type"}, // Allows for the CSRF token to be sent
 
 		// Tool for when CORS no longer works
 		// Debug: true,

@@ -13,8 +13,8 @@ VALUES ('2024-12-29 18:32:17.000', 'Rebel Yell', 'Billy Idol', 'https://youtu.be
 
 -- Todays Ranking
 INSERT INTO todaysRanking(song_id, curator_id, description, song_name, song_artist, song_path_resource, song_order)
-VALUES (1, 1, 'Ranking description', 'Moon Child', 'Cibo Matto', '3y3C6jAmC2w', 1);
+VALUES (1, 1, 'Ranking description', 'Moon Child', 'Cibo Matto', '3y3C6jAmC2w', 0);
 INSERT INTO todaysRanking(song_id, curator_id, description, song_name, song_artist, song_path_resource, song_order)
-VALUES (2, 1, 'Ranking description', 'Black Hole Sun', 'Sound Garden', '3mbBbFH9fAg', 2);
+VALUES (2, 1, 'Ranking description', 'Black Hole Sun', 'Sound Garden', '3mbBbFH9fAg', 1);
 INSERT INTO todaysRanking(song_id, curator_id, description, song_name, song_artist, song_path_resource, song_order)
-VALUES (3, 1, 'Ranking description', 'Rebel Yell', 'Billy Idol', 'seHlHzYpWBU', 3);
+VALUES (3, 1, 'Ranking description', 'Rebel Yell', 'Billy Idol', 'seHlHzYpWBU', 2);

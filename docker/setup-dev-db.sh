@@ -8,7 +8,7 @@ read -p "Are you using Docker Compose? (yes/no): " response
 response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 
 if [[ "$response" == "yes" ]]; then
-    exit 0
+    PGPASSWORD=passwd psql -h localhost -p 5432 -U postgres -d postgres -f setup.sql
 else
     echo "Proceeding with managing a PostgreSQL container..."
 fi
