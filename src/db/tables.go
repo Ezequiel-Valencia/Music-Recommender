@@ -36,9 +36,9 @@ Useful in case a special day is made where previous songs can be ranked again
 const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	insert_date TIMESTAMP NOT NULL,
-	name TEXT NOT NULL,
-	artist TEXT NOT NULL,
-	songURL TEXT NOT NULL,
+	name TEXT,
+	artist TEXT,
+	songURL TEXT,
 	genre TEXT,
 	subgenre TEXT,
 	submitter_id INTEGER references users(user_id),
