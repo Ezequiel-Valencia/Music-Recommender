@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"music-recommender/config"
+	"music-recommender/types/internal_types/auth_types"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -28,13 +29,13 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 		log.Fatal().Msg(err.Error())
 	}
 	err = db.Ping()
-	if (err != nil){
-		if testMode{
+	if err != nil {
+		if testMode {
 			return nil, nil, err
 		}
 		log.Fatal().Err(err).Msg("Can't connect to db.")
 	}
-	err = CreateTables(db, testMode)
+	err = CreateTablesAndFunctions(db, testMode)
 	initializeOrGetServerState(db)
 	if err != nil {
 		return nil, nil, err
@@ -43,10 +44,10 @@ func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
 }
 
 // The session and CSRF tokens should be decoded
-func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken string, requiresCSRF bool) (User, error) {
+func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken string, requiresCSRF bool) (auth_types.User, error) {
 	if sessionCookie == "" {
 		log.Error().Msg("Invalid Signature for Cookie")
-		return User{}, errors.New("invalid session cookie")
+		return auth_types.User{}, errors.New("invalid session cookie")
 	}
 	var userID int
 	var err error
@@ -57,7 +58,7 @@ func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken strin
 	}
 	if err != nil || err == sql.ErrNoRows {
 		log.Error().Msg("Can't retrieve user ID from session.")
-		return User{}, err
+		return auth_types.User{}, err
 	}
 
 	var user_id int
@@ -66,13 +67,13 @@ func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken strin
 	FROM users WHERE user_id = $1`, userID).Scan(&user_id,
 		&username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
 	if err == sql.ErrNoRows || err != nil {
-		return User{}, err
+		return auth_types.User{}, err
 	}
 	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
-	return User{UserId: user_id, Username: username, Email: email,
-		CreationSource: StringToUserCreationSource(creation_source),
+	return auth_types.User{UserId: user_id, Username: username, Email: email,
+		CreationSource: auth_types.StringToUserCreationSource(creation_source),
 		CreationDate:   time,
-		UserRole:       StringToUserRoles(user_role),
-		UserPrivileges: StringToUserPrivileges(user_privileges),
+		UserRole:       auth_types.StringToUserRoles(user_role),
+		UserPrivileges: auth_types.StringToUserPrivileges(user_privileges),
 	}, nil
 }

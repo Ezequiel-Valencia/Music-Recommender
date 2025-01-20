@@ -3,13 +3,18 @@ package t_utils
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
 	"music-recommender/config"
 	"music-recommender/db"
+	"music-recommender/db/music_table"
+	"music-recommender/types/communication_types"
+	"music-recommender/types/internal_types/auth_types"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/ory/dockertest"
 	"golang.org/x/crypto/bcrypt"
@@ -60,7 +65,7 @@ func GetTestDB() (*db.AbstractDB, *sql.DB) {
 
 // Completely destroys everything regarding the containers and DB
 func TearDownTestDB() {
-	if (dbPointer != nil && adb != nil && pool != nil && resource != nil){
+	if dbPointer != nil && adb != nil && pool != nil && resource != nil {
 		dbPointer.Close()
 		adb = nil
 		dbPointer = nil
@@ -77,7 +82,7 @@ func ResetTestDB() {
 	if err != nil {
 		log.Fatalf("Could not reset test DB: %s", err)
 	}
-	db.CreateTables(dbPointer, true)
+	db.CreateTablesAndFunctions(dbPointer, true)
 }
 
 // If not Alpha-Numeric compliant, UTF-32 characters are generated.
@@ -98,19 +103,41 @@ func GenerateRandomRuneString(lenOfRunes int, alphaNumericCompliant bool) string
 	return string(b)
 }
 
-
-func CreateFakeUser(db *sql.DB, user *db.User, nonHashedPasswd string){
+func CreateFakeUser(db *sql.DB, user *auth_types.User, nonHashedPasswd string) {
 	const executeString = `INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, 
 		creation_date, user_role, user_privileges) 
 	VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
-	db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+	_, err := db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func CreateHTTPBodyURLEncoded(body string) io.Reader{
+func CreateHTTPBodyURLEncoded(body string) io.Reader {
 	b64 := url.PathEscape(body)
 	return bytes.NewBufferString(b64)
 }
 
+func FillDBWithFakeSongs(dbPointer *sql.DB, adb *db.AbstractDB, user *auth_types.User) {
+	musicDriver := music_table.CreateMusicTableDriver(dbPointer, adb)
+	for i := range 10 {
+		submitSong := communication_types.SubmitSong{Name: fmt.Sprintf("Song %d", i),
+			Artist: fmt.Sprintf("Artist %d", i)}
+		musicDriver.InsertNewSong(&submitSong, *user)
+	}
+}
+
+var TestUserBob auth_types.User = auth_types.User{Username: "Bob", UserId: 1,
+	Email: "bob@gmail.com", CreationSource: auth_types.LocalUserCreationSource,
+	CreationDate: time.Now(), UserRole: auth_types.VoterRole, UserPrivileges: auth_types.NoPrivileges}
+
+var TestUserCuratorModerator auth_types.User = auth_types.User{Username: "Admin", UserId: 2,
+	Email: "admin@gmail.com", CreationSource: auth_types.LocalUserCreationSource,
+	CreationDate: time.Now(), UserRole: auth_types.CuratorRole, UserPrivileges: auth_types.ModeratorPrivileges}
+
+var TestUserOwner auth_types.User = auth_types.User{Username: "Owner", UserId: 3,
+	Email: "owner@gmail.com", CreationSource: auth_types.LocalUserCreationSource,
+	CreationDate: time.Now(), UserRole: auth_types.UnlimitedRole, UserPrivileges: auth_types.OwnerPrivileges}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"music-recommender/api"
 	"music-recommender/config"
-	"music-recommender/db"
+	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils/t_utils"
 	"net/http"
 	"testing"
@@ -24,7 +24,6 @@ var allEndPoints = []struct {
 	{Endpoint: "/user", RequestType: http.MethodDelete, RequiresAuth: true},
 	{Endpoint: "/logout", RequestType: http.MethodPost, RequiresAuth: true},
 	{Endpoint: "/passwd", RequestType: http.MethodPatch, RequiresAuth: true},
-	{Endpoint: "/allowUserCreation", RequestType: http.MethodPost, RequiresAuth: true},
 
 	{Endpoint: "/login", RequestType: http.MethodPost, RequiresAuth: false},
 	{Endpoint: "/register", RequestType: http.MethodPost, RequiresAuth: false},
@@ -42,11 +41,11 @@ func TestMain(m *testing.M) {
 	t_utils.TearDownTestDB()
 }
 
-func getUserCookies(login bool)(*http.Cookie, *http.Cookie){
+func getUserCookies(login bool) (*http.Cookie, *http.Cookie) {
 	var endpoint string
-	if (login){
+	if login {
 		endpoint = "/login"
-	} else{
+	} else {
 		endpoint = "/register"
 	}
 	req, _ := http.NewRequest(http.MethodPost,
@@ -83,7 +82,7 @@ func TestAllEndpointsAuthRequirements(t *testing.T) {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, res.StatusCode)
 
 			// If the endpoint deletes the user or logs them out, we have to validate it again
-			if ((tc.Endpoint == "/user" && tc.RequestType == "DELETE") || tc.Endpoint == "/logout"){
+			if (tc.Endpoint == "/user" && tc.RequestType == "DELETE") || tc.Endpoint == "/logout" {
 				sessionCookie, csrfCookie = getUserCookies(tc.Endpoint == "/logout")
 			}
 		} else {
@@ -98,7 +97,7 @@ func TestDailyDBTask(t *testing.T) {
 
 	nowTime := time.Now()
 	twoHundredDaysAgo := -1 * (200 * 24) * time.Hour
-	testUser := db.User{UserId: 1, Username: "Tester", CreationDate: nowTime.Add(twoHundredDaysAgo)}
+	testUser := auth_types.User{UserId: 1, Username: "Tester", CreationDate: nowTime.Add(twoHundredDaysAgo)}
 	t_utils.CreateFakeUser(dbPointer, &testUser, "password")
 
 	// Old Session
@@ -126,14 +125,13 @@ func TestDailyDBTask(t *testing.T) {
 	assert.Equal(t, nowTime.UTC().Format(config.StaticEnvs.TimeFormat), sessionCreationDate)
 }
 
-func TestMoreThanOneOwnerChecker(t *testing.T){
+func TestMoreThanOneOwnerChecker(t *testing.T) {
 	_, dbPointer := t_utils.GetTestDB()
 	defer t_utils.ResetTestDB()
 
-
-	t_utils.CreateFakeUser(dbPointer, &db.User{Username: "OGOwner", UserRole: db.UnlimitedRole, UserPrivileges: db.OwnerPrivileges}, "passwd")
+	t_utils.CreateFakeUser(dbPointer, &auth_types.User{Username: "OGOwner", UserRole: auth_types.UnlimitedRole, UserPrivileges: auth_types.OwnerPrivileges}, "passwd")
 	assert.False(t, isThereMoreThanOneOwner(dbPointer), "There is one owner")
-	t_utils.CreateFakeUser(dbPointer, &db.User{Username: "Oscar", UserPrivileges: db.OwnerPrivileges}, "passwd")
+	t_utils.CreateFakeUser(dbPointer, &auth_types.User{Username: "Oscar", UserPrivileges: auth_types.OwnerPrivileges}, "passwd")
 	assert.True(t, isThereMoreThanOneOwner(dbPointer), "Oscar wants to be owner too.")
 	dbPointer.Exec("DELETE FROM users WHERE username = 'Oscar'")
 	assert.False(t, isThereMoreThanOneOwner(dbPointer), "Back to one. Oscar is banned.")

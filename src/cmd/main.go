@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	api "music-recommender/api"
 	"music-recommender/db"
+	"music-recommender/db/ranking_table"
+	"music-recommender/types/internal_types/auth_types"
+	"music-recommender/utils"
 	"net/http"
-	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -25,18 +27,17 @@ func main() {
 	log.Info().Msg("Server has stopped.")
 }
 
-
 func DailyTaskSet(db *sql.DB) {
 	for {
+		utils.SleepUntilXHour(0)
 		log.Info().Msg("Executing Daily Server Maintenance Tasks")
 		dbCleanUp(db)
 		if isThereMoreThanOneOwner(db) {
 			log.Fatal().Msg("There seems to be more than one owner. Terminating server.")
 		}
-		time.Sleep(24 * time.Hour)
+		countVoteAndPlaceNewSongs(db)
 	}
 }
-
 
 func dbCleanUp(db *sql.DB) {
 	res, err := db.Exec("DELETE FROM sessions WHERE creation_date < CURRENT_DATE - interval '150 days'")
@@ -50,7 +51,7 @@ func dbCleanUp(db *sql.DB) {
 }
 
 func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
-	res, err := dbPointer.Exec("SELECT * FROM users WHERE user_privileges = $1 OR user_role = $2", db.OwnerPrivileges, db.UnlimitedRole)
+	res, err := dbPointer.Exec("SELECT * FROM users WHERE user_privileges = $1 OR user_role = $2", auth_types.OwnerPrivileges, auth_types.UnlimitedRole)
 	resNum, _ := res.RowsAffected()
 	if err != nil {
 		log.Err(err).Msg("Error occurred checking if there is more than one Owner")
@@ -59,6 +60,21 @@ func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
 	}
 
 	return resNum > 1 || err != nil
+}
+
+func countVoteAndPlaceNewSongs(dbPointer *sql.DB){
+	// Get the rankings
+	todaysRankingDriver := ranking_table.CreateTodaysRankingDriver(dbPointer)
+	rankedSongs, topSong, err := todaysRankingDriver.CalculateTodaysRank()
+	if (err != nil){
+		return
+	}
+
+	// Insert them into ranked table
+	ranking_table.CreateRankedDriver(dbPointer).InsertAlreadyRankedSongs(topSong, rankedSongs)
+
+	// Insert new songs into todaysRanking, inefficient and random for now
+	todaysRankingDriver.SelectNewSongs()
 }
 
 

@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
 
@@ -103,3 +105,37 @@ func IsStringANWithExtraChars(text string) bool {
     return regexp.MustCompile(`^[a-zA-Z0-9()!@#$%^&*.,:;\-_]*$`).MatchString(text)
 
 }
+
+func IsProperYouTubeLink() bool{
+    return true
+}
+
+func GetResourceFromYouTubeLink(link *string) string{
+    return "link"
+}
+
+func executeAtXMath(hour int, now time.Time) time.Time{
+    if (hour < 0 || hour > 23){
+        log.Fatalf("Hour set for execution was invalid: %d", hour)
+    }
+    var day int
+    if hour < now.Hour(){
+        day = now.AddDate(0, 0, 1).Day()
+    } else{
+        day = now.Day()
+    }
+    newDate := time.Date(now.Year(), now.Month(), day, hour, 0, 0, 0, time.Local)
+    if (newDate.Before(now)){
+        log.Fatal("New sleep date is before the present time.")
+    }
+    return newDate
+}
+
+/* Within a 24 hour time system, sleep until that set hour
+   Starts at 0:00 (12am) and ends at 23:00 (11pm)
+*/
+func SleepUntilXHour(hour int){
+    now := time.Now()
+    time.Sleep(executeAtXMath(hour, now).Sub(now))
+}
+

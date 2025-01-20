@@ -2,33 +2,55 @@ package music_table
 
 import (
 	"database/sql"
+	"errors"
+	"music-recommender/config"
 	"music-recommender/db"
-	"music-recommender/types"
+	"music-recommender/types/communication_types"
+	"music-recommender/types/internal_types/auth_types"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
-
-
-type MusicTable struct{
-	db *sql.DB
+type MusicTable struct {
+	db         *sql.DB
 	AbstractDB *db.AbstractDB
 }
 
-func CreateMusicTableDriver(db *sql.DB, abd *db.AbstractDB) *MusicTable{
+func CreateMusicTableDriver(db *sql.DB, abd *db.AbstractDB) *MusicTable {
 	return &MusicTable{db: db, AbstractDB: abd}
 }
 
-func (mdb MusicTable) InsertNewSong(musicEntry *types.SubmitSong) {
-	const executeString = `INSERT INTO music(name, songURL, genre, subgenre, description, submitterID) 
-	VALUES(?, ?, ?, ?, ?, ?)`
-	_, err := mdb.db.Exec(executeString, musicEntry.Name, musicEntry.SongURL,
-		musicEntry.Genre, musicEntry.Subgenre, musicEntry.Description, 20)
+// TODO: Check if the song URL is already present, and if so don't insert song again. 
+func (mdb MusicTable) InsertNewSong(musicEntry *communication_types.SubmitSong, user auth_types.User) int {
+	const executeString = `INSERT INTO music(insert_date, name, artist, songURL, genre, subgenre, submitter_id) 
+	VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id`
+	var songID int
+	err := mdb.db.QueryRow(executeString, time.Now().Format(config.StaticEnvs.TimeFormat), musicEntry.Name, musicEntry.Artist, musicEntry.SongURL,
+		musicEntry.Genre, musicEntry.Subgenre, user.UserId).Scan(&songID)
 	if err != nil {
 		log.Err(err).Msg("Can't insert song.")
+		return -1
 	}
+	return songID
 }
 
+func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, curator auth_types.User) error {
+	timeInserted := time.Now()
 
+	
+	var hitLimit bool
+	mdb.db.QueryRow(`SELECT reached_submit_limit($1, $2)`, curator.UserId, curator.UserRole.GetRolesSubmissionLimit()).Scan(&hitLimit)
 
+	if (hitLimit){
+		return errors.New("user has reached song submission limit")
+	}
+
+	for _, song := range songSet.Songs{
+		songID := mdb.InsertNewSong(&song, curator)
+		mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
+		VALUES($1, $2, $3, $4)`, songID, songSet.Description, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat))
+	}
+	return nil
+}
 

@@ -2,9 +2,9 @@ package auth
 
 import (
 	"music-recommender/config"
-	"music-recommender/db"
 	"music-recommender/db/auth_table"
-	"music-recommender/types"
+	"music-recommender/types/communication_types"
+	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils"
 	"net/http"
 	"strconv"
@@ -34,28 +34,30 @@ func NewHandler(mdb *auth_table.AuthTable) *Handler {
 }
 
 func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
-	router.HandleFunc("/user", RequireAuth(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods(http.MethodGet)
-	router.HandleFunc("/user", RequireAuth(h.deleteUser, h.authTable.AbstractDB)).Methods(http.MethodDelete)
+	router.HandleFunc("/user", RequireAuthMinimumPrivileges(h.loggedInUserInfo, h.authTable.AbstractDB)).Methods(http.MethodGet)
+	router.HandleFunc("/user", RequireAuthMinimumPrivileges(h.deleteUser, h.authTable.AbstractDB)).Methods(http.MethodDelete)
 
 	router.HandleFunc("/login", h.login).Methods(http.MethodPost)
-	router.HandleFunc("/logout", RequireAuth(h.logout, h.authTable.AbstractDB)).Methods(http.MethodPost)
+	router.HandleFunc("/logout", RequireAuthMinimumPrivileges(h.logout, h.authTable.AbstractDB)).Methods(http.MethodPost)
 	router.HandleFunc("/register", h.register).Methods(http.MethodPost)
 
-	router.HandleFunc("/allowUserCreation", RequireAuth(h.setUserCreationAllowance, h.authTable.AbstractDB)).Methods(http.MethodPost)
+	router.HandleFunc("/allowUserCreation", RequireAuth(h.setUserCreationAllowance, h.authTable.AbstractDB, auth_types.AdminPrivileges, auth_types.VoterRole)).Methods(http.MethodPost)
+	router.HandleFunc("/setUserRole", RequireAuth(h.setUserRole, h.authTable.AbstractDB, auth_types.ModeratorPrivileges, auth_types.TrustedCuratorRole)).Methods(http.MethodPost)
+	router.HandleFunc("/setUserPrivilege", RequireAuth(h.setUserPrivilege, h.authTable.AbstractDB, auth_types.AdminPrivileges, auth_types.OneSubmissionRole)).Methods(http.MethodPost)
 
-	router.HandleFunc("/passwd", RequireAuth(h.updatePassword, h.authTable.AbstractDB)).Methods(http.MethodPatch)
+	router.HandleFunc("/passwd", RequireAuthMinimumPrivileges(h.updatePassword, h.authTable.AbstractDB)).Methods(http.MethodPatch)
 }
 
-func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user db.User) {
-	utils.WriteJSON(w, types.UserDTO{Username: user.Username,
+func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user auth_types.User) {
+	utils.WriteJSON(w, communication_types.UserDTO{Username: user.Username,
 		CreationDate: user.CreationDate.Format(time.DateOnly), Role: user.UserRole.String()}, 200)
 }
 
-func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user db.User) {
+func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	h.authTable.DeleteUser(user.Username, user.UserId)
 }
 
-func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request, user db.User) {
+func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	// provide credentials to assure it is them
 	email := r.FormValue("email")
 	password := r.FormValue("password")
@@ -66,7 +68,7 @@ func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request, user db
 	///////////////////////////
 	// if not valid
 	validChars := validPasswordChars(password) && validEmailChars(email)
-	if  !validChars || !h.authTable.CorrectEmailAndPassword(email, password) {
+	if !validChars || !h.authTable.CorrectEmailAndPassword(email, password) {
 		http.Error(w, "Invalid username/password. Can't update password.", http.StatusNotAcceptable)
 		return
 	}
@@ -105,13 +107,13 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.storeUserSessionAsCookie(w, loginUser.Username)
-	utils.WriteJSON(w, types.UserDTO{Username: loginUser.Username,
+	utils.WriteJSON(w, communication_types.UserDTO{Username: loginUser.Username,
 		CreationDate: loginUser.CreationDate.Format(config.StaticEnvs.TimeFormat),
 		Role:         loginUser.UserRole.String()}, 200)
 
 }
 
-func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user db.User) {
+func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	sessionCookie, err := r.Cookie(config.StaticEnvs.SessionCookieName)
 	if err != nil {
 		http.Error(w, "Can't logout", http.StatusUnauthorized)
@@ -172,7 +174,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	if !h.authTable.IsTheUsernameAndEmailUnique(username, email){
+	if !h.authTable.IsTheUsernameAndEmailUnique(username, email) {
 		http.Error(w, "Username or email already exists", http.StatusConflict)
 		return
 	}
@@ -184,16 +186,16 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.authTable.CreateUser(username, email, hashedPassword, "", db.LocalUserCreationSource.String())
+	h.authTable.CreateUser(username, email, hashedPassword, "", auth_types.LocalUserCreationSource.String())
 	h.storeUserSessionAsCookie(w, username)
 	user := h.authTable.GetUserStructFromUsername(username)
-	utils.WriteJSON(w, types.UserDTO{Username: username,
+	utils.WriteJSON(w, communication_types.UserDTO{Username: username,
 		CreationDate: user.CreationDate.Format(config.StaticEnvs.TimeFormat),
 		Role:         user.UserRole.String()}, 200)
 }
 
-func (h *Handler) setUserCreationAllowance(w http.ResponseWriter, r *http.Request, user db.User) {
-	if user.UserPrivileges != db.OwnerPrivileges {
+func (h *Handler) setUserCreationAllowance(w http.ResponseWriter, r *http.Request, user auth_types.User) {
+	if user.UserPrivileges != auth_types.OwnerPrivileges {
 		log.Error().Msgf("Username %s, ID %d is attempting to disable user creation.", user.Username, user.UserId)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
@@ -215,3 +217,37 @@ func (h *Handler) setUserCreationAllowance(w http.ResponseWriter, r *http.Reques
 
 	h.authTable.SetAbilityForUserCreation(allowUserCreationBool)
 }
+
+func (h *Handler) setUserRole(w http.ResponseWriter, r *http.Request, user auth_types.User){
+	username := r.URL.Query().Get("username")
+	if (!utils.IsStringAlphaNumeric(username)){
+		http.Error(w, "Misformed username.", http.StatusBadRequest)
+		return
+	}
+	role := auth_types.StringToUserRoles(r.URL.Query().Get("role"))
+	if (role.EnumIndex() > auth_types.CuratorRole.EnumIndex()){
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		log.Error().Msgf("User %s just tried to set %s to a role higher than Curator!", user.Username, username)
+		return
+	}
+
+	h.authTable.SetUserRole(username, role)
+}
+
+func (h *Handler) setUserPrivilege(w http.ResponseWriter, r *http.Request, user auth_types.User){
+	username := r.URL.Query().Get("username")
+	if (!utils.IsStringAlphaNumeric(username)){
+		http.Error(w, "Misformed username.", http.StatusBadRequest)
+		return
+	}
+
+	privilege := auth_types.StringToUserPrivileges(r.URL.Query().Get("privilege"))
+	if (privilege.EnumIndex() > auth_types.AdminPrivileges.EnumIndex()){
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		log.Error().Msgf("User %s just tried to set %s to a role higher than Admin!", user.Username, username)
+		return
+	}
+
+	h.authTable.SetUserPrivilege(username, privilege)
+}
+
