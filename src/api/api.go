@@ -39,12 +39,12 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	anonymous_user_handler.RegisterAnonymousUserRoutes(subrouter)
 
 	curator_handler := curator_service.NewHandler(music_table.CreateMusicTableDriver(db, abd))
-	curator_handler.RegisterCuratorRoutes(subrouter)
+	curator_handler.RegisterCuratorRoutes(subrouter, router)
 
 	auth_handler := auth.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
 	auth_handler.RegisterAuthRoutes(subrouter)
 
 	
-	handlerWithCors := c.Handler(subrouter)
+	handlerWithCors := c.Handler(router)
 	return &http.Server{Addr: config.DynamicEnvs.HostAndPort, Handler: handlerWithCors}
 }
