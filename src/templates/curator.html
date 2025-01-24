@@ -8,10 +8,25 @@
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
 </head>
 <body>
+    <script>
+        function getCSRFToken(){
+            let name = "csrf_token=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                if (ca[i].startsWith("csrf_token")){
+                    return ca[i].slice(ca[i].indexOf("=") + 1)
+                }
+            }
+            return "";
+        }
+    </script>
     <h1 style="font-size: x-large; padding-top: 2vh; padding-bottom: 2vh;">
         Welcome {{ .User }} to the Curator Page
     </h1>
-    <form style="justify-content: center; align-items: center;">
+    <form hx-confirm="Sure about this submission."
+    hx-headers='javascript:{"x-csrf-token": getCSRFToken()}'
+    hx-post="/api/v1/submitMusic" style="justify-content: center; align-items: center;">
 
         {{ range .Iterations }}
             <div class="border-solid border-2 border-gray-400"
@@ -24,21 +39,66 @@
                 padding-top: 1vh;
                 display: grid;">
                     <label for="song-name-{{.}}">Song Name</label>
-                    <input type="text" id="song-name-{{.}}">
+                    <input required pattern="^[a-zA-Z0-9]*$" type="text" id="song-name-{{.}}">
 
                     <label for="artist-{{.}}">Artist</label>
-                    <input type="text" id="artist-{{.}}">
+                    <input pattern="^[a-zA-Z0-9]*$" type="text" id="artist-{{.}}">
 
                     <label for="url-{{.}}">Song YouTube URL</label>
-                    <input type="text" id="url-{{.}}">
+                    <input type="text" class="url-input" id="url-{{.}}">
                     
                 </div>
+                <iframe style="margin: auto; margin-top: 2vh;" 
+                id="iframe-{{.}}" width: 30vw; aspect-ratio:16 /9; 
+                allowfullscreen></iframe>
             </div>
             
         {{ end }}
+        <div class="border-solid border-2 border-gray-400" 
+        style="display: grid; text-align: center; width: 40vw;
+        padding: 3%; margin-left: auto; margin-right: auto; margin-bottom: 2vh;">
+
+            <label for="description">Description for song selection.</label>
+            <textarea required minlength="10" maxlength="250"
+            style="width: 30vw; max-width: 800px; margin: auto;" 
+            name="description" cols="50" rows="5" id="description-box"></textarea>
+
+        </div>
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Submit</button>
         
     </form>
-    <!-- <p>Currently used {{ .Submissions }} number of submissions.</p> -->
+    <p style="margin-bottom: 4vh;">Currently used {{ .Submissions }} number of submissions.</p>
+
+    <script>
+        /////////////////////////////
+        // Show URL to be uploaded //
+        ////////////////////////////
+        let urlInputs = document.getElementsByClassName("url-input")
+        for(let i = 0; i < urlInputs.length; i++){
+            urlInputs[i].addEventListener("input", (e) => {
+                let cutUpURL = e.target.value.split("/")[3].split("?")[0]
+                let isResourceAlphaNumeric = cutUpURL.match("^[a-zA-Z0-9]*$")
+                if (isResourceAlphaNumeric){
+                    let embedURL = "https://www.youtube.com/embed/" + cutUpURL
+                    document.getElementById("iframe-" + (i + 1)).src = embedURL
+                } else{
+                    window.alert("Youtube URL does not seem to be valid.")
+                    e.target.value = ""
+                }               
+            })
+        }
+
+        //////////////////////////////
+        // Validate description box //
+        //////////////////////////////
+        let descriptionBox = document.getElementById("description-box")
+        descriptionBox.addEventListener("input", (e) => {
+            //if not alpha numeric
+            if (!e.target.value.match("^[a-zA-Z0-9 ()!.]*$")){
+                e.target.value = e.target.value.slice(0, -1)
+            }
+        })
+    </script>
 </body>
 
 <style>
