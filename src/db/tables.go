@@ -46,7 +46,9 @@ const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
 	num_ranks INTEGER
 )`
 
-
+/*
+Time stamp acts as a form of grouping the different rows together
+*/
 const createToBeRankedTable = `CREATE TABLE IF NOT EXISTS toBeRanked (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	song_id INTEGER references music(id),

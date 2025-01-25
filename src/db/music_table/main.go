@@ -46,11 +46,41 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 		return errors.New("user has reached song submission limit")
 	}
 
+
+
 	for _, song := range songSet.Songs{
 		songID := mdb.InsertNewSong(&song, curator)
 		mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
 		VALUES($1, $2, $3, $4)`, songID, songSet.Description, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat))
 	}
 	return nil
+}
+
+func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []communication_types.SubmitSongSet {
+	result, _ := mdb.db.Query(`SELECT toBeRanked.description, 
+			music.name, music.artist, music.songURL 
+	FROM toBeRanked
+	INNER JOIN music ON music.id = toBeRanked.song_id 
+	WHERE toBeRanked.curator_id = $1;
+	`, user.UserId)
+
+	var submissions []communication_types.SubmitSongSet = []communication_types.SubmitSongSet{}
+
+	for {
+		var songSet communication_types.SubmitSongSet = communication_types.SubmitSongSet{}
+		for range 3{
+			if (!result.Next()){
+				return submissions
+			}
+			var description, name, artist, songURL string
+			result.Scan(&description, &name, &artist, &songURL)
+			songSet.Description = description
+			songSet.Songs = append(
+				songSet.Songs, 
+				communication_types.SubmitSong{Name: name, Artist: artist, SongURL: songURL},
+			)
+		}
+		submissions = append(submissions, songSet)
+	}
 }
 

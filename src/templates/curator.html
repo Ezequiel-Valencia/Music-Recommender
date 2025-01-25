@@ -20,11 +20,13 @@
             }
             return "";
         }
+        
     </script>
     <h1 style="font-size: x-large; padding-top: 2vh; padding-bottom: 2vh;">
         Welcome {{ .User }} to the Curator Page
     </h1>
     <form hx-confirm="Sure about this submission."
+    hx-swap="none"
     hx-headers='javascript:{"x-csrf-token": getCSRFToken()}'
     hx-post="/api/v1/submitMusic" style="justify-content: center; align-items: center;">
 
@@ -39,13 +41,13 @@
                 padding-top: 1vh;
                 display: grid;">
                     <label for="song-name-{{.}}">Song Name</label>
-                    <input required pattern="^[a-zA-Z0-9]*$" type="text" id="song-name-{{.}}">
+                    <input required pattern="^[a-zA-Z0-9 ]*$" type="text" id="song-name-{{.}}" name="song-name-{{.}}">
 
                     <label for="artist-{{.}}">Artist</label>
-                    <input pattern="^[a-zA-Z0-9]*$" type="text" id="artist-{{.}}">
+                    <input pattern="^[a-zA-Z0-9 ]*$" type="text" id="artist-{{.}}" name="artist-{{.}}">
 
                     <label for="url-{{.}}">Song YouTube URL</label>
-                    <input type="text" class="url-input" id="url-{{.}}">
+                    <input type="text" class="url-input" id="url-{{.}}" name="url-{{.}}">
                     
                 </div>
                 <iframe style="margin: auto; margin-top: 2vh;" 
@@ -58,16 +60,40 @@
         style="display: grid; text-align: center; width: 40vw;
         padding: 3%; margin-left: auto; margin-right: auto; margin-bottom: 2vh;">
 
-            <label for="description">Description for song selection.</label>
-            <textarea required minlength="10" maxlength="250"
+            <label for="description-box">Description for song selection.</label>
+            <textarea class="border-solid border-2 border-blue-200"  required minlength="10" maxlength="250"
             style="width: 30vw; max-width: 800px; margin: auto;" 
-            name="description" cols="50" rows="5" id="description-box"></textarea>
+            name="description-box" cols="50" rows="5" id="description-box"></textarea>
 
         </div>
         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Submit</button>
         
     </form>
-    <p style="margin-bottom: 4vh;">Currently used {{ .Submissions }} number of submissions.</p>
+    <h3 class="text-2xl"
+    style="margin-bottom: 4vh;">
+        Currently used {{ .Submissions }} number of submissions.
+    </h3>
+    <hr>
+
+    <h1 class="text-3xl" style="margin-top: 1vh;">Current Submissions</h1>
+    <section id="already-submited">
+        {{ range $i, $submission := .AlreadySubmitted }}
+            <div class="border-solid border-2 border-gray-400"
+            style="margin-top: 2vh; margin-bottom: 2vh; margin-left: auto; margin-right: auto;
+            width: 50vw; max-width: 800px;">
+                <h1 class="text-2xl" style="margin-top: 1vh;">Submission #{{ inc $i }}</h1>
+                {{ range $songNumber, $song := $submission.Songs }}
+                    <div style="margin-top: 2vh; margin-bottom: 2vh;">
+                        <h3>Song #{{ inc $songNumber }}</h3>
+                        <a class="underline text-blue-600 hover:text-blue-800 visited:text-purple-600"
+                        href="{{ $song.SongURL }}">{{ $song.Name }} by {{ $song.Artist }}</a>
+                    </div>
+                {{ end }}
+                <h2>Description:</h2>
+                <p style="margin-bottom: 1vh;">{{ $submission.Description }}</p>
+            </div>
+        {{ end }}
+    </section>
 
     <script>
         /////////////////////////////
@@ -77,7 +103,7 @@
         for(let i = 0; i < urlInputs.length; i++){
             urlInputs[i].addEventListener("input", (e) => {
                 let cutUpURL = e.target.value.split("/")[3].split("?")[0]
-                let isResourceAlphaNumeric = cutUpURL.match("^[a-zA-Z0-9]*$")
+                let isResourceAlphaNumeric = cutUpURL.match("^[a-zA-Z0-9\-]*$")
                 if (isResourceAlphaNumeric){
                     let embedURL = "https://www.youtube.com/embed/" + cutUpURL
                     document.getElementById("iframe-" + (i + 1)).src = embedURL
