@@ -7,6 +7,7 @@ import (
 	"music-recommender/db/auth_table"
 	"music-recommender/db/music_table"
 	"music-recommender/db/ranking_table"
+	"music-recommender/services/admin"
 	"music-recommender/services/auth"
 	"music-recommender/services/curator_service"
 	daily_user "music-recommender/services/daily-user"
@@ -43,6 +44,9 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 
 	auth_handler := auth.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
 	auth_handler.RegisterAuthRoutes(subrouter)
+
+	admin_handler := admin.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
+	admin_handler.RegisterAdminRoutes(subrouter, router)
 
 	
 	handlerWithCors := c.Handler(router)
