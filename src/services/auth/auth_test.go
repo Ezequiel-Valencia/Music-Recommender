@@ -355,6 +355,8 @@ func TestRequireAuth(t *testing.T) {
 		log.Print(tc.testCase)
 		if tc.sessionState == sessionAndCSRF {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
+		} else if (tc.sessionState == invalidCSRFHeader) {
+			assert.Equal(t, http.StatusUnauthorized, rr.Code)
 		} else {
 			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
 		}

@@ -14,7 +14,7 @@ import (
 
 const (
 	notPrivilegedUser int = iota
-	queryParamNotPresent
+	formBodyNotPresent
 	queryParamNotBoolean
 	validRequestToFalse
 	validRequestToTrue
@@ -31,17 +31,7 @@ var disableCreationCheck = []struct {
 		true,
 	},
 	{
-		queryParamNotPresent,
-		http.StatusBadRequest,
-		true,
-	},
-	{
-		queryParamNotBoolean,
-		http.StatusBadRequest,
-		true,
-	},
-	{
-		validRequestToFalse,
+		formBodyNotPresent,
 		http.StatusOK,
 		false,
 	},
@@ -52,6 +42,9 @@ var disableCreationCheck = []struct {
 	},
 }
 
+/*
+Disabling is determined whether or not the form entity 'allow-user-creation' is present or not.
+*/
 func TestDisablingUserCreation(t *testing.T) {
 	handler := createAuthHandler()
 	_, dbPointer := t_utils.GetTestDB()
@@ -71,19 +64,13 @@ func TestDisablingUserCreation(t *testing.T) {
 		switch tc.allowanceState {
 		case notPrivilegedUser:
 			testUser = badActor
+			request = httptest.NewRequest("POST", "/allowCreation?allow-user-creation", nil)
+		case formBodyNotPresent:
+			testUser = owner
 			request = httptest.NewRequest("POST", "/allowCreation", nil)
-		case queryParamNotPresent:
-			testUser = owner
-			request = httptest.NewRequest("POST", "/allowCreation?notPresent=True", nil)
-		case queryParamNotBoolean:
-			testUser = owner
-			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=80", nil)
-		case validRequestToFalse:
-			testUser = owner
-			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=False", nil)
 		case validRequestToTrue:
 			testUser = owner
-			request = httptest.NewRequest("POST", "/allowCreation?allowUserCreation=True", nil)
+			request = httptest.NewRequest("POST", "/allowCreation?allow-user-creation=true", nil)
 		}
 
 		handler.setUserCreationAllowance(rr, request, testUser)

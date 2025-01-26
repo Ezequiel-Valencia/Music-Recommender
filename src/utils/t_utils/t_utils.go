@@ -125,7 +125,7 @@ func FillDBWithFakeSongs(dbPointer *sql.DB, adb *db.AbstractDB, user *auth_types
 	musicDriver := music_table.CreateMusicTableDriver(dbPointer, adb)
 	for i := range 10 {
 		submitSong := communication_types.SubmitSong{Name: fmt.Sprintf("Song %d", i),
-			Artist: fmt.Sprintf("Artist %d", i)}
+			Artist: fmt.Sprintf("Artist %d", i), SongURL: "https://youtu.be/MPANooz_b9Q",}
 		musicDriver.InsertNewSong(&submitSong, *user)
 	}
 }
