@@ -99,6 +99,10 @@ func IsStringAlphaNumeric(text string) bool{
     return regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(text)
 }
 
+func IsStringAlphaNumericWithPunctuation(text string) bool{
+    return regexp.MustCompile(`^[a-zA-Z0-9 ()!.]*$`).MatchString(text)
+}
+
 // The extra chars allowed by this function is as follows
 // (,)!@#$%^&*.:-;_
 func IsStringANWithExtraChars(text string) bool {
@@ -106,12 +110,21 @@ func IsStringANWithExtraChars(text string) bool {
 
 }
 
-func IsProperYouTubeLink() bool{
-    return true
+func IsProperYouTubeLink(link string) bool{
+    _, err := GetResourceFromYouTubeLink(link)
+    return err == nil
 }
 
-func GetResourceFromYouTubeLink(link *string) string{
-    return "link"
+func GetResourceFromYouTubeLink(link string) (string, error){
+    cutUp := strings.Split(link, "/")
+    fmt.Println(cutUp)
+    pathAndQuery := strings.Split(cutUp[3], "?")
+    path := pathAndQuery[0]
+    properPath := regexp.MustCompile(`^[a-zA-Z0-9\-]*$`).MatchString(path)
+    if (!properPath){
+        return "", errors.New("not a proper path")
+    }
+    return path, nil
 }
 
 func executeAtXMath(hour int, now time.Time) time.Time{

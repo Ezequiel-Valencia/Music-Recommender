@@ -31,7 +31,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed
 		config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, encodedSessionCookie.Value, &sessionCookie)
 		user, err := adb.GetUserFromSessionID(sessionCookie, csrfToken, requiresCSRF)
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
+			http.Error(w, "Unable to perform action. Please clear your cookies and login again.", http.StatusUnauthorized)
 			return
 		}
 

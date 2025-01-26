@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+</head>
+<body>
+    <script>
+        function getCSRFToken(){
+            let name = "csrf_token=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                if (ca[i].startsWith("csrf_token")){
+                    return ca[i].slice(ca[i].indexOf("=") + 1)
+                }
+            }
+            return "";
+        }
+    </script>
+
+    <h1 class="top-bottom-margins grid-cols-2" style="font-size: x-large;">Welcome {{ .User }} to the Admin Page</h1>
+    {{ if eq .Privilege "Owner" }}
+        <form class="top-bottom-margins border-solid border-2 border-gray-400"
+        hx-confirm="Sure about this?"
+        hx-swap="none"
+        hx-headers='javascript:{"x-csrf-token": getCSRFToken()}'
+        hx-post="/api/v1/allowUserCreation">
+            <div class="grid-cols-2 form-input top-bottom-margins">
+                <label for="allow-user-creation">Allow User Creation?</label>
+                <input {{ if .CreationIsAllowed }} checked {{ end }} 
+                type="checkbox" name="allow-user-creation" id="allow-user-creation">
+            </div>
+            <button class="top-bottom-margins">Submit</button>
+        </form>
+    {{ end }}
+
+    <form class="top-bottom-margins border-solid border-2 border-gray-400"
+    hx-swap="none"
+    hx-headers='javascript:{"x-csrf-token": getCSRFToken()}'
+    hx-post="/api/v1/setUserRole">
+        <h3 class="top-bottom-margins">Set User Role</h3>
+        <div class="grid-cols-2 form-input">
+            <label for="username-for-role">Users Name</label>
+            <input type="text" name="username-for-role" id="username-for-role">
+
+            <label for="user-role">Users Role</label>
+            <input type="text" name="user-role" id="user-role">
+        </div>
+        <button class="top-bottom-margins">Submit</button>
+    </form>
+    
+
+    {{ if greaterThanOrEqual .PrivilegeInt (privilegeToInt "Admin") }}
+        <form class="top-bottom-margins grid-cols-2 border-solid border-2 border-gray-400"
+        hx-swap="none"
+        hx-headers='javascript:{"x-csrf-token": getCSRFToken()}'
+        hx-post="/api/v1/setUserPrivilege">
+            <h3 class="top-bottom-margins">Set User Privilege</h3>
+
+            <div class="grid-cols-2 form-input">
+                <label for="username-for-privilege">Users Name</label>
+                <input type="text" name="username-for-privilege" id="username-for-privilege">
+
+                <label for="user-privilege">Users Privilege</label>
+                <input type="text" name="user-privilege" id="user-privilege">             
+            </div>
+            <button class="top-bottom-margins">Submit</button>
+        </form>
+    {{ end }}
+
+</body>
+
+
+<style>
+    body{
+        text-align: center;
+        align-items: center;
+        font-family: 'Times New Roman', Times, serif;
+    }
+    input{
+        border-color: black;
+        border-width: 2px;
+        border-radius: 2px;
+    }
+    input:focus{
+        border-color: transparent;
+    }
+
+    .top-bottom-margins{
+        margin-top: 2vh;
+        margin-bottom: 2vh;
+    }
+
+    .form-input{
+        display: grid;
+        width: 50vw;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        gap: 10px;
+    }
+
+    form{
+        width: 60vw;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    button{
+        border-color: lightblue;
+        background-color: lightblue;
+        border-width: 3px;
+        border-radius: 4px;
+        padding: 3px;
+    }
+
+    button:hover{
+        background-color: rgb(84, 163, 253);
+        border-color: rgb(84, 163, 253);
+    }
+    
+</style>
+
+</html>

@@ -7,6 +7,7 @@ import (
 	"music-recommender/db/auth_table"
 	"music-recommender/db/music_table"
 	"music-recommender/db/ranking_table"
+	"music-recommender/services/admin"
 	"music-recommender/services/auth"
 	"music-recommender/services/curator_service"
 	daily_user "music-recommender/services/daily-user"
@@ -28,7 +29,7 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{config.DynamicEnvs.WebPageDomain},
 		AllowCredentials: true, // Allow cookies from other origins to be sent
-		AllowedHeaders: []string{"x-csrf-token"}, // Allows for the CSRF token to be sent
+		AllowedHeaders: []string{"x-csrf-token", "content-type"}, // Allows for the CSRF token to be sent
 
 		// Tool for when CORS no longer works
 		// Debug: true,
@@ -39,12 +40,15 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	anonymous_user_handler.RegisterAnonymousUserRoutes(subrouter)
 
 	curator_handler := curator_service.NewHandler(music_table.CreateMusicTableDriver(db, abd))
-	curator_handler.RegisterCuratorRoutes(subrouter)
+	curator_handler.RegisterCuratorRoutes(subrouter, router)
 
 	auth_handler := auth.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
 	auth_handler.RegisterAuthRoutes(subrouter)
 
+	admin_handler := admin.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
+	admin_handler.RegisterAdminRoutes(subrouter, router)
+
 	
-	handlerWithCors := c.Handler(subrouter)
+	handlerWithCors := c.Handler(router)
 	return &http.Server{Addr: config.DynamicEnvs.HostAndPort, Handler: handlerWithCors}
 }

@@ -138,13 +138,17 @@ func (mdb TodaysRankingDriver) setTodaysRanking(submission *internal_types.Today
 			log.Err(err).Msg("Problem setting todays ranking.")
 			return
 		}
+		resource, err := utils.GetResourceFromYouTubeLink(url)
+		if (err != nil){
+			log.Err(err).Msg("Resource for todays ranking has a problem.")
+		}
 		_, err = mdb.db.Exec(`INSERT INTO todaysRanking(
 			song_id, curator_id, description, song_name, song_artist,
 			song_path_resource, song_order
 		) 
 		VALUES($1, $2, $3, $4, $5, $6, $7)`,
 			songID, submission.CuratorId, submission.Description, name, artist,
-			utils.GetResourceFromYouTubeLink(&url), i,
+			resource, i,
 		)
 
 		if err != nil {

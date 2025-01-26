@@ -67,6 +67,7 @@ func (mdb AuthTable) GetUserStructFromEmail(providedEmail string) auth_types.Use
 }
 
 func (mdb AuthTable) SetUserRole(username string, userRole auth_types.UserRoles) {
+	log.Warn().Msgf("Setting user %s role to %s", username, userRole.String())
 	_, err := mdb.db.Exec("UPDATE users SET user_role = $1 WHERE username = $2", userRole.String(), username)
 	if err != nil{
 		log.Err(err).Msg("Can't set user role")
@@ -74,6 +75,7 @@ func (mdb AuthTable) SetUserRole(username string, userRole auth_types.UserRoles)
 }
 
 func (mdb AuthTable) SetUserPrivilege(username string, userPrivilege auth_types.UserPrivileges) {
+	log.Warn().Msgf("Setting user %s to privilege %s.", username, userPrivilege.String())
 	_, err := mdb.db.Exec("UPDATE users SET user_privileges = $1 WHERE username = $2", userPrivilege.String(), username)
 	if err != nil{
 		log.Err(err).Msg("Can't set user role")

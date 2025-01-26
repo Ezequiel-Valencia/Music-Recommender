@@ -13,6 +13,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.31.0
+	gotest.tools v2.2.0+incompatible
 )
 
 require (
@@ -38,5 +39,4 @@ require (
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gotest.tools v2.2.0+incompatible // indirect
 )
