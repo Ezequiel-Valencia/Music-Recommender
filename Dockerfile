@@ -46,7 +46,7 @@ RUN mkdir ./tmp
 ##################
 ## Build Go App ##
 ##################
-# RUN go build -o ./bin/threemix-executable ./cmd/main.go
+RUN go build -o ./bin/threemix-executable ./cmd/main.go
 
 
 

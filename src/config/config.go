@@ -58,7 +58,7 @@ func initConfig() Config {
 		DBHost:            getEnv("DB_HOST", "localhost", true),
 		DBName:            getEnv("DB_NAME", "postgres", true),
 		DBUser:            getEnv("DB_USER", "postgres", true),
-		DBPasswd:          getEnv("DB_PASSWD", "passwd", false),
+		DBPasswd:          getEnv("POSTGRES_PASSWORD", "passwd", false),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "", false), // nothing means localhost
 		WebPageDomain:	   getEnv("WEB_PAGE_DOMAIN", "http://localhost:5173", false),
 		AllowUserCreation: true,
