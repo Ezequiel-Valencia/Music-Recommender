@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 
@@ -129,17 +130,17 @@ func GetResourceFromYouTubeLink(link string) (string, error){
 
 func executeAtXMath(hour int, now time.Time) time.Time{
     if (hour < 0 || hour > 23){
-        log.Fatalf("Hour set for execution was invalid: %d", hour)
+        log.Fatal().Msgf("Hour set for execution was invalid: %d", hour)
     }
     var day int
-    if hour < now.Hour(){
+    if hour <= now.Hour(){
         day = now.AddDate(0, 0, 1).Day()
     } else{
         day = now.Day()
     }
     newDate := time.Date(now.Year(), now.Month(), day, hour, 0, 0, 0, time.Local)
     if (newDate.Before(now)){
-        log.Fatal("New sleep date is before the present time.")
+        log.Fatal().Msg("New sleep date is before the present time.")
     }
     return newDate
 }
