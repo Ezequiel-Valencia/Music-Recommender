@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"music-recommender/config"
 	"music-recommender/db/auth_table"
+	"music-recommender/db/ranking_table"
 	"music-recommender/services/auth"
 	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils"
@@ -17,10 +18,11 @@ import (
 
 type Handler struct {
 	authTable *auth_table.AuthTable
+	todaysRankingTable *ranking_table.TodaysRankingDriver
 }
 
-func NewHandler(mdb *auth_table.AuthTable) *Handler {
-	return &Handler{mdb}
+func NewHandler(mdb *auth_table.AuthTable, trt *ranking_table.TodaysRankingDriver) *Handler {
+	return &Handler{mdb, trt}
 }
 
 func (h *Handler) RegisterAdminRoutes(apiRouter *mux.Router, pageRouter *mux.Router) {
@@ -30,6 +32,7 @@ func (h *Handler) RegisterAdminRoutes(apiRouter *mux.Router, pageRouter *mux.Rou
 	apiRouter.HandleFunc("/allowUserCreation", auth.RequireAuth(h.setUserCreationAllowance, h.authTable.AbstractDB, auth_types.AdminPrivileges, auth_types.VoterRole)).Methods(http.MethodPost)
 	apiRouter.HandleFunc("/setUserRole", auth.RequireAuth(h.setUserRole, h.authTable.AbstractDB, auth_types.ModeratorPrivileges, auth_types.TrustedCuratorRole)).Methods(http.MethodPost)
 	apiRouter.HandleFunc("/setUserPrivilege", auth.RequireAuth(h.setUserPrivilege, h.authTable.AbstractDB, auth_types.AdminPrivileges, auth_types.OneSubmissionRole)).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/skipSongSelection", auth.RequireAuth(h.skipSongSelection, h.authTable.AbstractDB, auth_types.AdminPrivileges, auth_types.OneSubmissionRole)).Methods(http.MethodPost)
 
 }
 
@@ -98,6 +101,12 @@ func (h *Handler) setUserPrivilege(w http.ResponseWriter, r *http.Request, user 
 
 	h.authTable.SetUserPrivilege(username, privilege)
 	w.Header().Add("HX-Refresh", "true")
+}
+
+func (h *Handler) skipSongSelection(w http.ResponseWriter, r *http.Request, user auth_types.User){
+	log.Info().Msg("Skipped current song selection.")
+	h.todaysRankingTable.CleanTodaysRanking()
+	h.todaysRankingTable.SelectNewSongs()
 }
 
 

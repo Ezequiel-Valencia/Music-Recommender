@@ -70,6 +70,15 @@
             </div>
             <button class="top-bottom-margins">Submit</button>
         </form>
+
+        <form class="top-bottom-margins grid-cols-2 border-solid border-2 border-gray-400"
+        hx-swap="none"
+        hx-confirm="Do you really want to skip the current songs?"
+        hx-headers='javascript:{"x-csrf-token": getCSRFToken()}'
+        hx-post="/api/v1/skipSongSelection">
+        <h3 class="top-bottom-margins">Skip Current Song Selection?</h3>
+            <button class="top-bottom-margins">Skip</button>
+        </form>
     {{ end }}
 
 </body>

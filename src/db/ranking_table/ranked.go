@@ -36,7 +36,7 @@ func (rd TodaysRankingDriver) CalculateTodaysRank()([]internal_types.RankedSong,
 		log.Err(err).Msg("Can't compute todays ranking.")
 		return nil, -1, err
 	}
-	var rankedSongs []internal_types.RankedSong
+	var rankedSongs []internal_types.RankedSong = []internal_types.RankedSong{}
 	var topSongId int = 1
 	var topVotes int = -1
 	for res.Next() {
@@ -52,6 +52,13 @@ func (rd TodaysRankingDriver) CalculateTodaysRank()([]internal_types.RankedSong,
 		)
 	}
 	return rankedSongs, topSongId, nil
+}
+
+func (rd TodaysRankingDriver) CleanTodaysRanking(){
+	_, err := rd.db.Exec("DELETE * FROM todaysRanking")
+	if (err != nil){
+		log.Err(err).Msg("Didn't clean todays ranking.")
+	}
 }
 
 func (mdb TodaysRankingDriver) GetCalendarsMusic() *communication_types.CalendarPayload {

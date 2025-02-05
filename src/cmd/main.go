@@ -70,9 +70,14 @@ func countVoteAndPlaceNewSongs(dbPointer *sql.DB){
 		return
 	}
 
-	// Insert them into ranked table
-	ranking_table.CreateRankedDriver(dbPointer).InsertAlreadyRankedSongs(topSong, rankedSongs)
-
+	if (topSong != -1){
+		// Insert them into ranked table
+		ranking_table.CreateRankedDriver(dbPointer).InsertAlreadyRankedSongs(topSong, rankedSongs)
+		todaysRankingDriver.CleanTodaysRanking()
+	} else {
+		log.Warn().Msg("No songs where available to calculate rank.")
+	}
+	
 	// Insert new songs into todaysRanking, inefficient and random for now
 	todaysRankingDriver.SelectNewSongs()
 }

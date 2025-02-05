@@ -45,7 +45,7 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	auth_handler := auth.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
 	auth_handler.RegisterAuthRoutes(subrouter)
 
-	admin_handler := admin.NewHandler(auth_table.CreateAuthTableDriver(db, abd))
+	admin_handler := admin.NewHandler(auth_table.CreateAuthTableDriver(db, abd), ranking_table.CreateTodaysRankingDriver(db))
 	admin_handler.RegisterAdminRoutes(subrouter, router)
 
 	

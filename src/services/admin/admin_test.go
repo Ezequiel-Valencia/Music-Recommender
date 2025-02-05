@@ -3,6 +3,7 @@ package admin
 import (
 	"music-recommender/config"
 	"music-recommender/db/auth_table"
+	"music-recommender/db/ranking_table"
 	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils/t_utils"
 	"net/http"
@@ -82,7 +83,8 @@ func TestDisablingUserCreation(t *testing.T) {
 func createAuthHandler() *Handler {
 	adb, dbPointer := t_utils.GetTestDB()
 	at := auth_table.CreateAuthTableDriver(dbPointer, adb)
-	return NewHandler(at)
+	trt := ranking_table.CreateTodaysRankingDriver(dbPointer)
+	return NewHandler(at, trt)
 }
 
 
