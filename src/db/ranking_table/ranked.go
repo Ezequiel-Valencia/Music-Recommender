@@ -55,7 +55,7 @@ func (rd TodaysRankingDriver) CalculateTodaysRank()([]internal_types.RankedSong,
 }
 
 func (rd TodaysRankingDriver) CleanTodaysRanking(){
-	_, err := rd.db.Exec("DELETE * FROM todaysRanking")
+	_, err := rd.db.Exec("DELETE FROM todaysRanking")
 	if (err != nil){
 		log.Err(err).Msg("Didn't clean todays ranking.")
 	}
