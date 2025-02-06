@@ -119,6 +119,8 @@ func (mdb TodaysRankingDriver) SelectNewSongs() {
 		whatWillBeRankedToday.Description = description
 		whatWillBeRankedToday.SongIDs = append(whatWillBeRankedToday.SongIDs, songId)
 	}
+	mdb.db.Exec(`DELETE FROM toBeRanked 
+	WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
 
 	mdb.setTodaysRanking(&whatWillBeRankedToday)
 }
