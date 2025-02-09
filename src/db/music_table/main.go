@@ -43,6 +43,7 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 	mdb.db.QueryRow(`SELECT reached_submit_limit($1, $2)`, curator.UserId, curator.UserRole.GetRolesSubmissionLimit()).Scan(&hitLimit)
 
 	if (hitLimit){
+		log.Warn().Msgf("User %s has hit their submission limit", curator.Username)
 		return errors.New("user has reached song submission limit")
 	}
 
@@ -50,8 +51,12 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 
 	for _, song := range songSet.Songs{
 		songID := mdb.InsertNewSong(&song, curator)
-		mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
+		_, err := mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
 		VALUES($1, $2, $3, $4)`, songID, songSet.Description, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat))
+		if (err != nil){
+			log.Err(err).Msg("Problem inserting song set to be ranked.")
+			return err
+		}
 	}
 	return nil
 }
