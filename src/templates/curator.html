@@ -103,7 +103,7 @@
         for(let i = 0; i < urlInputs.length; i++){
             urlInputs[i].addEventListener("input", (e) => {
                 let cutUpURL = e.target.value.split("/")[3].split("?")[0]
-                let isResourceAlphaNumeric = cutUpURL.match("^[a-zA-Z0-9\-]*$")
+                let isResourceAlphaNumeric = cutUpURL.match("^[a-zA-Z0-9\-_]*$")
                 if (isResourceAlphaNumeric){
                     let embedURL = "https://www.youtube.com/embed/" + cutUpURL
                     document.getElementById("iframe-" + (i + 1)).src = embedURL
@@ -120,7 +120,7 @@
         let descriptionBox = document.getElementById("description-box")
         descriptionBox.addEventListener("input", (e) => {
             //if not alpha numeric
-            if (!e.target.value.match("^[a-zA-Z0-9 ()!.]*$")){
+            if (!e.target.value.match("^[a-zA-Z0-9 ()!.',]*$")){
                 e.target.value = e.target.value.slice(0, -1)
             }
         })

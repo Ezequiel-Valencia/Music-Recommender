@@ -101,7 +101,7 @@ func IsStringAlphaNumeric(text string) bool{
 }
 
 func IsStringAlphaNumericWithPunctuation(text string) bool{
-    return regexp.MustCompile(`^[a-zA-Z0-9 ()!.]*$`).MatchString(text)
+    return regexp.MustCompile(`^[a-zA-Z0-9 ()!.',]*$`).MatchString(text)
 }
 
 // The extra chars allowed by this function is as follows
@@ -121,7 +121,7 @@ func GetResourceFromYouTubeLink(link string) (string, error){
     fmt.Println(cutUp)
     pathAndQuery := strings.Split(cutUp[3], "?")
     path := pathAndQuery[0]
-    properPath := regexp.MustCompile(`^[a-zA-Z0-9\-]*$`).MatchString(path)
+    properPath := regexp.MustCompile(`^[a-zA-Z0-9\-_]*$`).MatchString(path)
     if (!properPath){
         return "", errors.New("not a proper path")
     }
