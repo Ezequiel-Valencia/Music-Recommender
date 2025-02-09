@@ -99,6 +99,12 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 	return &musicPayload
 }
 
+func (mdb TodaysRankingDriver) AnySongsToBeRanked() bool{
+	sqlRows, _ := mdb.db.Exec(`SELECT * FROM toBeRanked`)
+	res, _ := sqlRows.RowsAffected()
+	return res > 0
+}
+
 // Dumb for now
 func (mdb TodaysRankingDriver) SelectNewSongs() {
 	var newSongListTime time.Time
