@@ -72,7 +72,7 @@ func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_ty
 
 func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusicPayload {
 
-	rows, err := mdb.db.Query(`SELECT song_id, curator_id, description, song_order, song_name, song_artist, song_path_resource
+	rows, err := mdb.db.Query(`SELECT song_id, curator_id, description_id, song_order, song_name, song_artist, song_path_resource
 	FROM todaysRanking`)
 	if err != nil {
 		log.Err(err).Msg("Can't Get Todays Music")
@@ -85,8 +85,11 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 	var curatorID int
 	for rows.Next() {
 		var songID, order int
+		var description_id int
 		var description, songName, songArtist, songResource string
-		rows.Scan(&songID, &curatorID, &description, &order, &songName, &songArtist, &songResource)
+		rows.Scan(&songID, &curatorID, &description_id, &order, &songName, &songArtist, &songResource)
+		mdb.db.QueryRow(`SELECT description 
+		FROM submissionDescriptions WHERE id = $1`, description_id).Scan(&description)
 		musicPayload.CuratorDescription = description
 
 		musicEntry := communication_types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
@@ -113,16 +116,15 @@ func (mdb TodaysRankingDriver) SelectNewSongs() {
 	LIMIT 1`).Scan(&newSongListTime)
 
 	
-	sqlRows, _ := mdb.db.Query(`SELECT song_id, description, curator_id FROM toBeRanked 
+	sqlRows, _ := mdb.db.Query(`SELECT song_id, description_id, curator_id FROM toBeRanked 
 		WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
 	
 	var whatWillBeRankedToday internal_types.TodaysRankingSubmission = internal_types.TodaysRankingSubmission{}
 	for sqlRows.Next(){
-		var description string
-		var curatorId, songId int
-		sqlRows.Scan(&songId, &description, &curatorId)
+		var description_id, curatorId, songId int
+		sqlRows.Scan(&songId, &description_id, &curatorId)
 		whatWillBeRankedToday.CuratorId = curatorId
-		whatWillBeRankedToday.Description = description
+		whatWillBeRankedToday.Description_Id = description_id
 		whatWillBeRankedToday.SongIDs = append(whatWillBeRankedToday.SongIDs, songId)
 	}
 	mdb.db.Exec(`DELETE FROM toBeRanked 
@@ -151,11 +153,11 @@ func (mdb TodaysRankingDriver) setTodaysRanking(submission *internal_types.Today
 			log.Err(err).Msg("Resource for todays ranking has a problem.")
 		}
 		_, err = mdb.db.Exec(`INSERT INTO todaysRanking(
-			song_id, curator_id, description, song_name, song_artist,
+			song_id, curator_id, description_id, song_name, song_artist,
 			song_path_resource, song_order
 		) 
 		VALUES($1, $2, $3, $4, $5, $6, $7)`,
-			songID, submission.CuratorId, submission.Description, name, artist,
+			songID, submission.CuratorId, submission.Description_Id, name, artist,
 			resource, i,
 		)
 

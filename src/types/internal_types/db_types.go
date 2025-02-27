@@ -2,7 +2,7 @@ package internal_types
 
 type TodaysRankingSubmission struct {
 	SongIDs     []int
-	Description string
+	Description_Id int
 	CuratorId int
 }
 

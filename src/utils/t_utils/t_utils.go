@@ -121,12 +121,16 @@ func CreateHTTPBodyURLEncoded(body string) io.Reader {
 	return bytes.NewBufferString(b64)
 }
 
-func FillDBWithFakeSongs(dbPointer *sql.DB, adb *db.AbstractDB, user *auth_types.User) {
+func FillDBWithFakeSongsAndDescription(dbPointer *sql.DB, adb *db.AbstractDB, user *auth_types.User, fakeDescription string) {
 	musicDriver := music_table.CreateMusicTableDriver(dbPointer, adb)
 	for i := range 10 {
 		submitSong := communication_types.SubmitSong{Name: fmt.Sprintf("Song %d", i),
 			Artist: fmt.Sprintf("Artist %d", i), SongURL: "https://youtu.be/MPANooz_b9Q",}
 		musicDriver.InsertNewSong(&submitSong, *user)
+	}
+	_, err := dbPointer.Exec(`INSERT INTO submissionDescriptions(description) VALUES($1)`, fakeDescription)
+	if err != nil{
+		log.Print(err)
 	}
 }
 

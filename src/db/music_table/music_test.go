@@ -51,9 +51,10 @@ func TestInsertSet(t *testing.T){
 	expectedErrorAndRowCount(t, dbPointer, err, false, 3)
 
 	var description string
-	var curatorID int
+	var curatorID, description_id int
 	var timeSubmitted time.Time
-	dbPointer.QueryRow(`SELECT description, curator_id, date_submitted FROM toBeRanked WHERE song_id = 1`).Scan(&description, &curatorID, &timeSubmitted)
+	dbPointer.QueryRow(`SELECT description_id, curator_id, date_submitted FROM toBeRanked WHERE song_id = 1`).Scan(&description_id, &curatorID, &timeSubmitted)
+	dbPointer.QueryRow(`SELECT description FROM submissionDescriptions WHERE id = $1`, description_id).Scan(&description)
 	assert.Equal(t, "Fake Description", description)
 	assert.Equal(t, t_utils.TestUserCuratorModerator.UserId, curatorID)
 	sqlRows, _ := dbPointer.Query(`SELECT date_submitted FROM toBeRanked`)

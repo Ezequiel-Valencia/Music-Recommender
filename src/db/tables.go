@@ -52,9 +52,14 @@ Time stamp acts as a form of grouping the different rows together
 const createToBeRankedTable = `CREATE TABLE IF NOT EXISTS toBeRanked (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	song_id INTEGER references music(id),
-	description TEXT NOT NULL,
+	description_id INTEGER references submissionDescriptions(id),
 	curator_id INTEGER references users(user_id),
 	date_submitted TIMESTAMP NOT NULL
+)`
+
+const createDescriptionsTable = `CREATE TABLE IF NOT EXISTS submissionDescriptions (
+	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+	description TEXT NOT NULL
 )`
 
 /*
@@ -82,7 +87,7 @@ Clean the table, and place the new songs which will be ranked within the table
 const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRanking (
 	song_id INTEGER references music(id),
 	curator_id INTEGER references users(user_id),
-	description TEXT NOT NULL,
+	description_id INTEGER references submissionDescriptions(id) ON DELETE CASCADE,
 	song_name TEXT NOT NULL,
 	song_artist TEXT NOT NULL,
 	song_path_resource TEXT NOT NULL,
@@ -109,8 +114,9 @@ const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
 
 // 0 for table primary key is special value, will not be used and can be assumed as NULL
 func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
-	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable,
-		createRankingTable, createTodaysRankingTable, serverState, createToBeRankedTable}
+	tables := [...]string{createUserTable, createMusicTable, createDescriptionsTable, createSessionIDTable,
+		createRankingTable, createTodaysRankingTable, 
+		serverState, createToBeRankedTable}
 	functions := [...]string{hasUserSubmitCountHitLimit}
 	createDBHelper(db, testMode, tables[:], "Tables")
 	createDBHelper(db, testMode, functions[:], "Functions")

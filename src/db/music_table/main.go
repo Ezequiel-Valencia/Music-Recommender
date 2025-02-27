@@ -47,12 +47,14 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 		return errors.New("user has reached song submission limit")
 	}
 
-
+	var descriptionID int
+	const submissionInsertion = `INSERT INTO submissionDescriptions(description) VALUES($1) RETURNING id`
+	mdb.db.QueryRow(submissionInsertion, songSet.Description).Scan(&descriptionID)
 
 	for _, song := range songSet.Songs{
 		songID := mdb.InsertNewSong(&song, curator)
-		_, err := mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
-		VALUES($1, $2, $3, $4)`, songID, songSet.Description, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat))
+		_, err := mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description_id, curator_id, date_submitted)
+		VALUES($1, $2, $3, $4)`, songID, descriptionID, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat))
 		if (err != nil){
 			log.Err(err).Msg("Problem inserting song set to be ranked.")
 			return err
@@ -62,7 +64,7 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 }
 
 func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []communication_types.SubmitSongSet {
-	result, _ := mdb.db.Query(`SELECT toBeRanked.description, 
+	result, _ := mdb.db.Query(`SELECT toBeRanked.description_id, 
 			music.name, music.artist, music.songURL 
 	FROM toBeRanked
 	INNER JOIN music ON music.id = toBeRanked.song_id 
@@ -78,7 +80,10 @@ func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []commu
 				return submissions
 			}
 			var description, name, artist, songURL string
-			result.Scan(&description, &name, &artist, &songURL)
+			var description_id int
+			result.Scan(&description_id, &name, &artist, &songURL)
+			mdb.db.QueryRow(`SELECT description FROM 
+			submissionDescriptions WHERE id = $1`, &description_id).Scan(&description)
 			songSet.Description = description
 			songSet.Songs = append(
 				songSet.Songs, 
