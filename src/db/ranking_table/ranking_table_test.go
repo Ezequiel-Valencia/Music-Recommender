@@ -49,10 +49,11 @@ func TestTodaysRanking(t *testing.T) {
 	}
 }
 
-// Correctly update the vote counts, and retrieve their percentage
+// Correctly update the vote counts, retrieve their percentage, and insert vote for user reference
 func TestUpdateRanking(t *testing.T) {
 	adb, dbPointer := t_utils.GetTestDB()
 	rankTable := TodaysRankingDriver{db: dbPointer}
+	rankedTable := RankedDriver{dbPointer: dbPointer}
 	defer t_utils.ResetTestDB()
 
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserBob, "password123")
@@ -63,15 +64,23 @@ func TestUpdateRanking(t *testing.T) {
 	assert.Equal(t, map[int]float64{0: 0, 1: 0, 2: 0}, currentRanking.RankingMap)
 
 	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 1}, t_utils.TestUserBob)
+	votedFor := rankedTable.GetSongsUserVotedFor(t_utils.TestUserBob)
+	for _, song := range votedFor{
+		assert.Equal(t, "Song 1", song.Song.Name)
+	}
 	currentRanking = rankTable.GetTodaysVotes()
 	assert.Equal(t, float64(1), currentRanking.RankingMap[1])
-	assert.Equal(t, float64(0), currentRanking.RankingMap[0])
+	assert.Equal(t, float64(0), currentRanking.RankingMap[2])
 
-	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 0}, t_utils.TestUserBob)
+	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 2}, t_utils.TestUserBob)
 	currentRanking = rankTable.GetTodaysVotes()
 	assert.Equal(t, float64(0.5), currentRanking.RankingMap[1])
-	assert.Equal(t, float64(0.5), currentRanking.RankingMap[0])
-	assert.Equal(t, float64(0.0), currentRanking.RankingMap[2])
+	assert.Equal(t, float64(0.0), currentRanking.RankingMap[0])
+	assert.Equal(t, float64(0.5), currentRanking.RankingMap[2])
+	votedFor = rankedTable.GetSongsUserVotedFor(t_utils.TestUserBob)
+	for i, song := range votedFor{
+		assert.Equal(t, fmt.Sprintf("Song %d", i + 1), song.Song.Name)
+	}
 }
 
 

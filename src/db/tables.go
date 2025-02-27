@@ -26,6 +26,13 @@ const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 	last_vote TIMESTAMP
 )`
 
+const createUserVotesTable string = `CREATE TABLE IF NOT EXISTS userVotes (
+	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+	user_id INTEGER references users(user_id),
+	song_id INTEGER references music(id),
+	date TIMESTAMP NOT NULL
+)`
+
 /*
 rank_id is a comma separated list of the foreign keys associated with ranking table
 
@@ -116,7 +123,7 @@ const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
 func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
 	tables := [...]string{createUserTable, createMusicTable, createDescriptionsTable, createSessionIDTable,
 		createRankingTable, createTodaysRankingTable, 
-		serverState, createToBeRankedTable}
+		serverState, createToBeRankedTable, createUserVotesTable}
 	functions := [...]string{hasUserSubmitCountHitLimit}
 	createDBHelper(db, testMode, tables[:], "Tables")
 	createDBHelper(db, testMode, functions[:], "Functions")
