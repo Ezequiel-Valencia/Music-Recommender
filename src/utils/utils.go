@@ -133,14 +133,18 @@ func executeAtXMath(hour int, now time.Time) time.Time{
         log.Fatal().Msgf("Hour set for execution was invalid: %d", hour)
     }
     var day int
+    month := now.Month()
     if hour <= now.Hour(){
         day = now.AddDate(0, 0, 1).Day()
+        if day == 1{
+            month = now.AddDate(0, 1, 0).Month()
+        }
     } else{
         day = now.Day()
     }
-    newDate := time.Date(now.Year(), now.Month(), day, hour, 0, 0, 0, time.Local)
+    newDate := time.Date(now.Year(), month, day, hour, 0, 0, 0, time.Local)
     if (newDate.Before(now)){
-        log.Fatal().Msg("New sleep date is before the present time.")
+        log.Fatal().Msgf("New sleep date is before the present time. Now: %v New Date: %v", newDate, now)
     }
     return newDate
 }
