@@ -52,7 +52,9 @@ type UserDTO struct{
 }
 
 type SongsUserVotedOnDTO struct{
-	Song SubmitSong
+	Title string
+	Artist string
+	SongURL string
 	Date time.Time
 }
 

@@ -66,7 +66,7 @@ func TestUpdateRanking(t *testing.T) {
 	rankTable.UpdateTodaysVoteCount(communication_types.SubmitVotePayload{SongOrder: 1}, t_utils.TestUserBob)
 	votedFor := rankedTable.GetSongsUserVotedFor(t_utils.TestUserBob)
 	for _, song := range votedFor{
-		assert.Equal(t, "Song 1", song.Song.Name)
+		assert.Equal(t, "Song 1", song.Title)
 	}
 	currentRanking = rankTable.GetTodaysVotes()
 	assert.Equal(t, float64(1), currentRanking.RankingMap[1])
@@ -79,7 +79,7 @@ func TestUpdateRanking(t *testing.T) {
 	assert.Equal(t, float64(0.5), currentRanking.RankingMap[2])
 	votedFor = rankedTable.GetSongsUserVotedFor(t_utils.TestUserBob)
 	for i, song := range votedFor{
-		assert.Equal(t, fmt.Sprintf("Song %d", i + 1), song.Song.Name)
+		assert.Equal(t, fmt.Sprintf("Song %d", i + 1), song.Title)
 	}
 }
 

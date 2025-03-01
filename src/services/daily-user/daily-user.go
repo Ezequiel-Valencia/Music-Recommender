@@ -15,17 +15,18 @@ import (
 
 type Handler struct {
 	rankingTable *ranking_table.TodaysRankingDriver
+	rankedDriver *ranking_table.RankedDriver
 	adb          *db.AbstractDB
 }
 
-func NewHandler(mdb *ranking_table.TodaysRankingDriver, adb *db.AbstractDB) *Handler {
-	return &Handler{mdb, adb}
+func NewHandler(mdb *ranking_table.TodaysRankingDriver, ranked *ranking_table.RankedDriver,adb *db.AbstractDB) *Handler {
+	return &Handler{mdb, ranked, adb}
 }
 
 func (h *Handler) RegisterAnonymousUserRoutes(router *mux.Router) {
 	router.HandleFunc("/todaysMusic", h.handleGettingTodaysMusic).Methods("GET")
-	// router.HandleFunc("/calendar", auth.RequireAuthMinimumPrivileges(h.handleGettingCalendar, h.adb)).Methods("GET")
 	router.HandleFunc("/voteMusic", auth.RequireAuthMinimumPrivileges(h.submitAVote, h.adb)).Methods("POST")
+	router.HandleFunc("/pastVotes", auth.RequireAuthMinimumPrivileges(h.handleGettingUsersPastVotes, h.adb)).Methods("GET")
 }
 
 // https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body
@@ -59,8 +60,8 @@ func (h *Handler) handleGettingTodaysMusic(w http.ResponseWriter, r *http.Reques
 	utils.WriteJSON(w, todaysMusic, 200)
 }
 
-// func (h *Handler) handleGettingCalendar(w http.ResponseWriter, r *http.Request, user auth_types.User) {
-// 	// get past music choices with their dates
-// 	calendar := h.rankingTable.GetCalendarsMusic()
-// 	utils.WriteJSON(w, calendar, 200)
-// }
+func (h *Handler) handleGettingUsersPastVotes(w http.ResponseWriter, r *http.Request, user auth_types.User) {
+	// get past music choices with their dates
+	pastVotes := h.rankedDriver.GetSongsUserVotedFor(user)
+	utils.WriteJSON(w, pastVotes, 200)
+}
