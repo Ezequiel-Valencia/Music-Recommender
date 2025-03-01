@@ -95,8 +95,6 @@ const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRankin
 	song_id INTEGER references music(id),
 	curator_id INTEGER references users(user_id),
 	description_id INTEGER references submissionDescriptions(id) ON DELETE CASCADE,
-	song_name TEXT NOT NULL,
-	song_artist TEXT NOT NULL,
 	song_path_resource TEXT NOT NULL,
 	song_order INTEGER NOT NULL,
 	num_votes INTEGER DEFAULT 0
