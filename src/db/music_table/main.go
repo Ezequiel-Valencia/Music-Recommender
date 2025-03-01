@@ -64,12 +64,18 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 }
 
 func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []communication_types.SubmitSongSet {
-	result, _ := mdb.db.Query(`SELECT toBeRanked.description_id, 
-			music.name, music.artist, music.songURL 
+	result, err := mdb.db.Query(`SELECT des.description, 
+			music.name, music.artist, music.songURL
 	FROM toBeRanked
 	INNER JOIN music ON music.id = toBeRanked.song_id 
+	INNER JOIN submissionDescriptions des ON des.id = toBeRanked.description_id
 	WHERE toBeRanked.curator_id = $1;
 	`, user.UserId)
+
+	if (err != nil){
+		log.Err(err).Msg("Can't get user sets to be ranked.")
+		return []communication_types.SubmitSongSet{}
+	}
 
 	var submissions []communication_types.SubmitSongSet = []communication_types.SubmitSongSet{}
 
@@ -80,10 +86,7 @@ func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []commu
 				return submissions
 			}
 			var description, name, artist, songURL string
-			var description_id int
-			result.Scan(&description_id, &name, &artist, &songURL)
-			mdb.db.QueryRow(`SELECT description FROM 
-			submissionDescriptions WHERE id = $1`, &description_id).Scan(&description)
+			result.Scan(&description, &name, &artist, &songURL)
 			songSet.Description = description
 			songSet.Songs = append(
 				songSet.Songs, 

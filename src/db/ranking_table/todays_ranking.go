@@ -80,8 +80,8 @@ func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_ty
 
 func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusicPayload {
 
-	rows, err := mdb.db.Query(`SELECT song_id, curator_id, description_id, song_order, song_name, song_artist, song_path_resource
-	FROM todaysRanking`)
+	rows, err := mdb.db.Query(`SELECT song_id, curator_id, des.description, song_order, song_name, song_artist, song_path_resource
+	FROM todaysRanking INNER JOIN submissionDescriptions des ON todaysRanking.description_id = des.id`)
 	if err != nil {
 		log.Err(err).Msg("Can't Get Todays Music")
 		return &communication_types.TodaysMusicPayload{}
@@ -93,11 +93,8 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 	var curatorID int
 	for rows.Next() {
 		var songID, order int
-		var description_id int
 		var description, songName, songArtist, songResource string
-		rows.Scan(&songID, &curatorID, &description_id, &order, &songName, &songArtist, &songResource)
-		mdb.db.QueryRow(`SELECT description 
-		FROM submissionDescriptions WHERE id = $1`, description_id).Scan(&description)
+		rows.Scan(&songID, &curatorID, &description, &order, &songName, &songArtist, &songResource)
 		musicPayload.CuratorDescription = description
 
 		musicEntry := communication_types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
