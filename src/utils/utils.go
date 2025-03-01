@@ -37,6 +37,8 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
             msg := "Content-Type header is not application/json"
             return &MalformedRequest{Status: http.StatusUnsupportedMediaType, Msg: msg}
         }
+    } else{
+        return &MalformedRequest{Status: http.StatusBadRequest, Msg: "No application header present."}
     }
 
     r.Body = http.MaxBytesReader(w, r.Body, 1048576)

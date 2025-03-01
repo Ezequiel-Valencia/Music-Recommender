@@ -32,10 +32,10 @@ func (h *Handler) RegisterAnonymousUserRoutes(router *mux.Router) {
 // https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body
 
 func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user auth_types.User) {
-	var vote communication_types.SubmitVotePayload
-	err := utils.DecodeJSONBody(w, r, vote)
+	var vote communication_types.SubmitVotePayload = communication_types.SubmitVotePayload{}
+	err := utils.DecodeJSONBody(w, r, &vote)
 	if err != nil {
-		log.Error().Msg(err.Error())
+		log.Err(err).Msg("Problem decoding users vote.")
 		return
 	}
 
