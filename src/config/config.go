@@ -73,7 +73,7 @@ func getEnvInt(key string, def int, allowForDefault bool) int {
 	if allowForDefault {
 		return def
 	}
-	log.Error().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
+	log.Warn().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
 	return def
 }
 
@@ -84,6 +84,6 @@ func getEnv(key string, def string, allowForDefault bool) string {
 	if allowForDefault {
 		return def
 	}
-	log.Error().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
+	log.Warn().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
 	return def
 }

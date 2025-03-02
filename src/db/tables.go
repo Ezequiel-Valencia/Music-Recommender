@@ -20,7 +20,8 @@ const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 	creation_source TEXT NOT NULL,
 	creation_date TIMESTAMP NOT NULL,
 	song_sets_submitted INTEGER NOT NULL DEFAULT(0),
-	last_vote TIMESTAMP
+	last_vote TIMESTAMP,
+	UNIQUE(username, email)
 )`
 
 const createUserAuthorizationTable string = `CREATE TABLE IF NOT EXISTS userPrivileges (

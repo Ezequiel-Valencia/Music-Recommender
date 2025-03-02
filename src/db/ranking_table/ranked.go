@@ -46,7 +46,7 @@ func (mdb RankedDriver) GetSongsUserVotedFor(user auth_types.User) []communicati
 		mdb.dbPointer.QueryRow(`SELECT name, artist, songURL, genre, subgenre 
 		FROM music WHERE id = $1`, songId).Scan(&name, &artist, &songURL, &genre, &subgenre)
 		itemInSongSet := communication_types.SongsUserVotedOnDTO{Title: name, Artist: artist, SongURL: songURL, Date: date}
-		songSet = append(songSet, itemInSongSet)
+		songSet = append([]communication_types.SongsUserVotedOnDTO{itemInSongSet}, songSet...)
 	}
 	return songSet
 }
