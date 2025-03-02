@@ -103,14 +103,20 @@ func GenerateRandomRuneString(lenOfRunes int, alphaNumericCompliant bool) string
 	return string(b)
 }
 
+// Inserts both a fake user, and user privileges associated with them.
 func CreateFakeUser(db *sql.DB, user *auth_types.User, nonHashedPasswd string) {
 	const executeString = `INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, 
-		creation_date, user_role, user_privileges) 
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
+		creation_date) 
+	VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id`
 
+	var userID int
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
-	_, err := db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+	db.QueryRow(executeString, user.Username, user.Email, 
+		hashedPassword, "", user.CreationSource, 
+		user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat)).Scan(&userID)
+	_, err := db.Exec(`INSERT INTO userPrivileges(user_id, moderator, music_submission)
+	VALUES($1, $2, $3)`, userID, user.UserPrivileges, user.UserRole)
 	if err != nil {
 		log.Fatal(err)
 	}

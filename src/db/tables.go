@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Good enough table SCHEMA for now
 
 // User Identity instead of serial for UID's cause it's SQL compliant
 // https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
@@ -20,12 +19,17 @@ const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 	subject_identifier TEXT,
 	creation_source TEXT NOT NULL,
 	creation_date TIMESTAMP NOT NULL,
-	user_role TEXT NOT NULL,
-	user_privileges TEXT NOT NULL,
 	song_sets_submitted INTEGER NOT NULL DEFAULT(0),
 	last_vote TIMESTAMP
 )`
 
+const createUserAuthorizationTable string = `CREATE TABLE IF NOT EXISTS userPrivileges (
+	user_id INTEGER PRIMARY KEY references users(user_id) ON DELETE CASCADE NOT NULL,
+	moderator TEXT NOT NULL,
+	music_submission TEXT NOT NULL
+)`
+
+// All the votes that users have made
 const createUserVotesTable string = `CREATE TABLE IF NOT EXISTS userVotes (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	user_id INTEGER references users(user_id),
@@ -119,7 +123,9 @@ const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
 
 // 0 for table primary key is special value, will not be used and can be assumed as NULL
 func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
-	tables := [...]string{createUserTable, createMusicTable, createDescriptionsTable, createSessionIDTable,
+	tables := [...]string{createUserTable, createMusicTable, 
+		createUserAuthorizationTable,
+		createDescriptionsTable, createSessionIDTable,
 		createRankingTable, createTodaysRankingTable, 
 		serverState, createToBeRankedTable, createUserVotesTable}
 	functions := [...]string{hasUserSubmitCountHitLimit}
