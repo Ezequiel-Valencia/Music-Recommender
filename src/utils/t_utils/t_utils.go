@@ -116,7 +116,7 @@ func CreateFakeUser(db *sql.DB, user *auth_types.User, nonHashedPasswd string) {
 		hashedPassword, "", user.CreationSource, 
 		user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat)).Scan(&userID)
 	_, err := db.Exec(`INSERT INTO userPrivileges(user_id, moderator, music_submission)
-	VALUES($1, $2, $3)`, userID, user.UserPrivileges, user.UserRole)
+	VALUES($1, $2, $3)`, userID, user.UserPrivileges.String(), user.UserRole.String())
 	if err != nil {
 		log.Fatal(err)
 	}

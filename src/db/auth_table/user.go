@@ -35,41 +35,45 @@ func (at AuthTable) DeleteUser(username string, userID int) error {
 }
 
 func (mdb AuthTable) GetUserStructFromUsername(providedUsername string) auth_types.User {
-	var user_id int
-	var username, email, creation_source, creation_date, user_role, user_privileges string
-	err := mdb.db.QueryRow(`SELECT users.user_id, users.username, users.email, 
-	users.creation_source, users.creation_date, 
-	priv.music_submission, priv.moderator 
-	FROM users 
-	INNER JOIN userPrivileges priv ON users.user_id = priv.user_id
-	WHERE users.username = $1`, providedUsername).Scan(&user_id,
-		&username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
-	if err == sql.ErrNoRows || err != nil {
-		return auth_types.User{}
-	}
-	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
-	return auth_types.User{UserId: user_id, Username: username, Email: email,
-		CreationSource: auth_types.StringToUserCreationSource(creation_source),
-		CreationDate:   time,
-		UserRole:       auth_types.StringToUserRoles(user_role),
-		UserPrivileges: auth_types.StringToUserPrivileges(user_privileges),
-	}
+	return mdb.gettingUser("", providedUsername)
 }
 
 func (mdb AuthTable) GetUserStructFromEmail(providedEmail string) auth_types.User {
+	return mdb.gettingUser(providedEmail, "")
+}
+
+func (mdb AuthTable) gettingUser(providedEmail string, providedUsername string) auth_types.User{
 	var user_id int
 	var username, email, creation_source, creation_date, user_role, user_privileges string
-	err := mdb.db.QueryRow(`SELECT users.user_id, users.username, users.email, 
-	users.creation_source, users.creation_date, 
-	priv.music_submission, priv.moderator
-	FROM users 
-	INNER JOIN userPrivileges priv ON users.user_id = priv.user_id
-	WHERE email = $1`, providedEmail).Scan(&user_id,
-		&username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
+	var providedString string
+	var queryString string
+
+	if (providedEmail == ""){
+		providedString = providedUsername
+		queryString = `SELECT users.user_id, users.username, users.email, 
+		users.creation_source, users.creation_date, 
+		priv.music_submission, priv.moderator
+		FROM users 
+		INNER JOIN userPrivileges priv ON users.user_id = priv.user_id
+		WHERE users.username = $1`
+	} else{
+		providedString = providedEmail
+		queryString = `SELECT users.user_id, users.username, users.email, 
+		users.creation_source, users.creation_date, 
+		priv.music_submission, priv.moderator
+		FROM users 
+		INNER JOIN userPrivileges priv ON users.user_id = priv.user_id
+		WHERE users.email = $1`
+	}
+	
+
+	err := mdb.db.QueryRow(queryString, providedString).
+	Scan(&user_id, &username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
 	if err == sql.ErrNoRows || err != nil {
-		log.Err(err).Msg("Unable to get user from email.")
+		log.Err(err).Msgf("Unable to get user from email/username: %s", providedString)
 		return auth_types.User{}
 	}
+
 	time, _ := time.Parse(config.StaticEnvs.TimeFormat, creation_date)
 	return auth_types.User{UserId: user_id, Username: username, Email: email,
 		CreationSource: auth_types.StringToUserCreationSource(creation_source),
