@@ -55,7 +55,8 @@ const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
 	subgenre TEXT,
 	submitter_id INTEGER references users(user_id),
 	rank_id TEXT,
-	num_ranks INTEGER
+	num_ranks INTEGER,
+	UNIQUE(songURL)
 )`
 
 /*
@@ -87,7 +88,7 @@ const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranked (
 	song_id INTEGER references music(id),
 	curator_id INTEGER references users(user_id),
 	date_ranked TIMESTAMP NOT NULL,
-	num_votes INTEGER,
+	num_votes INTEGER NOT NULL,
 	winner BOOLEAN
 )`
 
@@ -112,7 +113,8 @@ const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
 	user_id INTEGER references users(user_id) ON DELETE CASCADE,
 	session_id TEXT NOT NULL,
 	csrf_token TEXT NOT NULL,
-	creation_date TIMESTAMP NOT NULL
+	creation_date TIMESTAMP NOT NULL,
+	UNIQUE(session_id)
 )`
 
 const serverState string = `CREATE TABLE IF NOT EXISTS server_state (

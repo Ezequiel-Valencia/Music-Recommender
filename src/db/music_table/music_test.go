@@ -2,6 +2,7 @@ package music_table_test
 
 import (
 	"database/sql"
+	"fmt"
 	"music-recommender/db/music_table"
 	"music-recommender/types/communication_types"
 	"music-recommender/utils/t_utils"
@@ -23,15 +24,18 @@ func TestInsertSet(t *testing.T){
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserCuratorModerator, "password")
 	driver := music_table.CreateMusicTableDriver(dbPointer, adb)
 
-	fakeSong := communication_types.SubmitSong{
-		Name: "Fake",
-		Artist: "Artist",
-		SongURL: "Song url",
-		Genre: "Genre",
-		Subgenre: "Sub",
+	var fakeSongSet = []communication_types.SubmitSong{}
+	for i := range(3){
+		fakeSong := communication_types.SubmitSong{
+			Name: "Fake",
+			Artist: "Artist",
+			SongURL: fmt.Sprintf("Song url %d", i),
+			Genre: "Genre",
+			Subgenre: "Sub",
+		}
+		fakeSongSet = append(fakeSongSet, fakeSong)
 	}
-	fakeSongSet := []communication_types.SubmitSong{fakeSong, fakeSong, fakeSong}
-
+	
 	/////////////
 	//! Tests !//
 	/////////////

@@ -79,7 +79,7 @@ func TestUpdateRanking(t *testing.T) {
 	assert.Equal(t, float64(0.5), currentRanking.RankingMap[2])
 	votedFor = rankedTable.GetSongsUserVotedFor(t_utils.TestUserBob)
 	for i, song := range votedFor{
-		assert.Equal(t, fmt.Sprintf("Song %d", i + 1), song.Title)
+		assert.Equal(t, fmt.Sprintf("Song %d", 2 - i), song.Title)
 	}
 }
 
