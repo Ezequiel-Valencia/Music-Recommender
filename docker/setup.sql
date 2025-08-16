@@ -15,7 +15,7 @@ VALUES ('2024-12-29 18:32:17.000', 'Rebel Yell', 'Billy Idol', 'https://youtu.be
 
 -- Descriptions
 INSERT INTO submissionDescriptions(description)
-VALUES ('Ranking description');
+VALUES ('I chose these songs for a very particular reason.');
 
 -- Todays Ranking
 INSERT INTO todaysRanking(song_id, curator_id, description_id, song_path_resource, song_order)

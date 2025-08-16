@@ -1,0 +1,1 @@
+PGPASSWORD=passwd psql -h localhost -p 5432 -U postgres -d postgres -f setup.sql
