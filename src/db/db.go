@@ -18,9 +18,14 @@ type AbstractDB struct {
 }
 
 func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
+	var disableSSL string = " sslmode=disable"
+	if (config.DynamicEnvs.DBSsl){
+		disableSSL = ""
+	}
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		config.DynamicEnvs.DBHost, config.DynamicEnvs.DBPort, config.DynamicEnvs.DBUser, config.DynamicEnvs.DBPasswd, config.DynamicEnvs.DBName)
+		"password=%s dbname=%s%s",
+		config.DynamicEnvs.DBHost, config.DynamicEnvs.DBPort, config.DynamicEnvs.DBUser, config.DynamicEnvs.DBPasswd, config.DynamicEnvs.DBName,
+	disableSSL)
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		if testMode {
