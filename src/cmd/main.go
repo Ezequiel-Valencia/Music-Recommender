@@ -7,7 +7,6 @@ import (
 	"music-recommender/db/ranking_table"
 	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils"
-	"net/http"
 
 	"github.com/rs/zerolog/log"
 )
@@ -20,7 +19,7 @@ func main() {
 	// Task set in separate thread that runs once a day
 	go DailyTaskSet(dbPointer)
 
-	var server *http.Server = api.CreateMainServer(dbPointer, abstractDB) //Pointer to the API server struct
+	server := api.CreateMainServer(dbPointer, abstractDB)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal().AnErr("error", err).Msg("Server can't start.")
 	}

@@ -49,7 +49,7 @@ func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user auth_
 	}
 
 	h.rankingTable.UpdateTodaysVoteCount(vote, user)
-	var todaysRanking communication_types.TodaysRankingPayload = h.rankingTable.GetTodaysVotes()
+	todaysRanking := h.rankingTable.GetTodaysVotes()
 	if err := utils.WriteJSON(w, todaysRanking, 200); err != nil {
 		log.Err(err).Msg("Failed to write today's ranking JSON.")
 	}

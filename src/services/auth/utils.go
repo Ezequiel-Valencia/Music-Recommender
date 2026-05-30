@@ -91,7 +91,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		return
 	}
 
-	var oneHundred50Days time.Duration = 150 * (time.Hour * 24)
+	oneHundred50Days := 150 * (time.Hour * 24)
 
 	// Long enough that users don't have to login every time, but also not to long where someone attempting brute force can get in.
 	http.SetCookie(w, &http.Cookie{

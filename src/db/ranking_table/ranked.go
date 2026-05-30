@@ -38,9 +38,9 @@ func (rd TodaysRankingDriver) CalculateTodaysRank() ([]internal_types.RankedSong
 		log.Err(err).Msg("Can't compute todays ranking.")
 		return nil, -1, err
 	}
-	var rankedSongs []internal_types.RankedSong = []internal_types.RankedSong{}
-	var topSongId int = 1
-	var topVotes int = -1
+	rankedSongs := []internal_types.RankedSong{}
+	topSongId := 1
+	topVotes := -1
 	for res.Next() {
 		var song_id, numVotes, curator_id int
 

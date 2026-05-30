@@ -121,7 +121,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user auth_types
 		http.Error(w, "Can't logout", http.StatusUnauthorized)
 		return
 	}
-	var decodedCookie string = ""
+	decodedCookie := ""
 	if err := config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedCookie); err != nil {
 		log.Err(err).Msg("Failed to decode logout cookie.")
 	}
@@ -158,9 +158,9 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user auth_types
 }
 
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
-	var username string = r.FormValue("username")
-	var email string = r.FormValue("email")
-	var password string = r.FormValue("password")
+	username := r.FormValue("username")
+	email := r.FormValue("email")
+	password := r.FormValue("password")
 
 	if !config.DynamicEnvs.AllowUserCreation {
 		http.Error(w, "User creation is not allowed.", http.StatusMethodNotAllowed)

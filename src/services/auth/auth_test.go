@@ -112,11 +112,12 @@ func TestRequireAuth(t *testing.T) {
 		rr := httptest.NewRecorder()
 		endPointWithAuth(rr, request)
 		log.Print(tc.testCase)
-		if tc.sessionState == sessionAndCSRF {
+		switch tc.sessionState {
+		case sessionAndCSRF:
 			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
-		} else if tc.sessionState == invalidCSRFHeader {
+		case invalidCSRFHeader:
 			assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		} else {
+		default:
 			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
 		}
 	}

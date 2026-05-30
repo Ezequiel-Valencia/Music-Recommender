@@ -29,7 +29,7 @@ func (mdb TodaysRankingDriver) GetTodaysVotes() communication_types.TodaysRankin
 	todaysRanking := communication_types.TodaysRankingPayload{
 		RankingMap: make(map[int]float64),
 	}
-	var totalVotes int = 0
+	totalVotes := 0
 	for res.Next() {
 		var order, numVotes int
 		if err := res.Scan(&order, &numVotes); err != nil {
@@ -121,7 +121,7 @@ func (mdb TodaysRankingDriver) SelectNewSongs() {
 	sqlRows, _ := mdb.db.Query(`SELECT song_id, description, curator_id FROM toBeRanked 
 		WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
 
-	var whatWillBeRankedToday internal_types.TodaysRankingSubmission = internal_types.TodaysRankingSubmission{}
+	whatWillBeRankedToday := internal_types.TodaysRankingSubmission{}
 	for sqlRows.Next() {
 		var description string
 		var curatorId, songId int

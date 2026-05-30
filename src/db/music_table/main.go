@@ -65,10 +65,10 @@ func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []commu
 	WHERE toBeRanked.curator_id = $1;
 	`, user.UserId)
 
-	var submissions []communication_types.SubmitSongSet = []communication_types.SubmitSongSet{}
+	submissions := []communication_types.SubmitSongSet{}
 
 	for {
-		var songSet communication_types.SubmitSongSet = communication_types.SubmitSongSet{}
+		songSet := communication_types.SubmitSongSet{}
 		for range 3 {
 			if !result.Next() {
 				return submissions

@@ -58,7 +58,7 @@ func (h *Handler) curatorPage(w http.ResponseWriter, r *http.Request, user auth_
 
 func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	// submit music to be chosen to the data base.
-	var submitSong communication_types.SubmitSongSet = communication_types.SubmitSongSet{}
+	submitSong := communication_types.SubmitSongSet{}
 	err := r.ParseForm()
 	if err != nil {
 		return
