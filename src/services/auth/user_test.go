@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
 var registerTestCases = []struct {
 	testCase         string
 	request          *http.Request
@@ -60,9 +58,6 @@ var registerTestCases = []struct {
 	},
 }
 
-
-
-
 func TestRegister(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
@@ -92,7 +87,6 @@ func TestRegister(t *testing.T) {
 
 }
 
-
 func TestPasswordUpdate(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
@@ -118,7 +112,6 @@ func TestPasswordUpdate(t *testing.T) {
 	assert.True(t, handler.authTable.CorrectEmailAndPassword("Ezequiel2@gmail.com", "other890"), "")
 }
 
-
 func TestDeleteUser(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
@@ -136,5 +129,3 @@ func TestDeleteUser(t *testing.T) {
 	user = handler.authTable.GetUserStructFromUsername("Ezequiel")
 	assert.Equal(t, 0, user.UserId)
 }
-
-

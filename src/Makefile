@@ -12,3 +12,4 @@ run:
 
 check:
 	@golangci-lint run
+	@golangci-lint format

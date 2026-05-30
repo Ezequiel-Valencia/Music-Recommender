@@ -73,5 +73,3 @@ func TestUpdateRanking(t *testing.T) {
 	assert.Equal(t, float64(0.5), currentRanking.RankingMap[0])
 	assert.Equal(t, float64(0.0), currentRanking.RankingMap[2])
 }
-
-

@@ -62,24 +62,22 @@ func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
 	return resNum > 1 || err != nil
 }
 
-func countVoteAndPlaceNewSongs(dbPointer *sql.DB){
+func countVoteAndPlaceNewSongs(dbPointer *sql.DB) {
 	// Get the rankings
 	todaysRankingDriver := ranking_table.CreateTodaysRankingDriver(dbPointer)
 	rankedSongs, topSong, err := todaysRankingDriver.CalculateTodaysRank()
-	if (err != nil){
+	if err != nil {
 		return
 	}
 
-	if (topSong != -1){
+	if topSong != -1 {
 		// Insert them into ranked table
 		ranking_table.CreateRankedDriver(dbPointer).InsertAlreadyRankedSongs(topSong, rankedSongs)
 		todaysRankingDriver.CleanTodaysRanking()
 	} else {
 		log.Warn().Msg("No songs where available to calculate rank.")
 	}
-	
+
 	// Insert new songs into todaysRanking, inefficient and random for now
 	todaysRankingDriver.SelectNewSongs()
 }
-
-

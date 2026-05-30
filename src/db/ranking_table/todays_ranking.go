@@ -16,7 +16,6 @@ type TodaysRankingDriver struct {
 	db *sql.DB
 }
 
-
 func CreateTodaysRankingDriver(db *sql.DB) *TodaysRankingDriver {
 	return &TodaysRankingDriver{db: db}
 }
@@ -119,12 +118,11 @@ func (mdb TodaysRankingDriver) SelectNewSongs() {
 		return
 	}
 
-	
 	sqlRows, _ := mdb.db.Query(`SELECT song_id, description, curator_id FROM toBeRanked 
 		WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
-	
+
 	var whatWillBeRankedToday internal_types.TodaysRankingSubmission = internal_types.TodaysRankingSubmission{}
-	for sqlRows.Next(){
+	for sqlRows.Next() {
 		var description string
 		var curatorId, songId int
 		if err := sqlRows.Scan(&songId, &description, &curatorId); err != nil {
@@ -159,7 +157,7 @@ func (mdb TodaysRankingDriver) setTodaysRanking(submission *internal_types.Today
 			return
 		}
 		resource, err := utils.GetResourceFromYouTubeLink(url)
-		if (err != nil){
+		if err != nil {
 			log.Err(err).Msg("Resource for todays ranking has a problem.")
 		}
 		_, err = mdb.db.Exec(`INSERT INTO todaysRanking(

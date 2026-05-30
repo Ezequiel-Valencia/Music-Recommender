@@ -203,4 +203,3 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		log.Err(err).Msg("Failed to write register response JSON.")
 	}
 }
-

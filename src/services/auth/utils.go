@@ -40,7 +40,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed
 
 		privilegeToHigh := user.UserPrivileges.EnumIndex() < minPrivAllowed.EnumIndex()
 		roleToHigh := user.UserRole.EnumIndex() < minRoleAllowed.EnumIndex()
-		if (privilegeToHigh || roleToHigh){
+		if privilegeToHigh || roleToHigh {
 			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
 			return
 		}
@@ -50,10 +50,9 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed
 	}
 }
 
-func RequireAuthMinimumPrivileges(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc{
+func RequireAuthMinimumPrivileges(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc {
 	return RequireAuth(handlerFunc, adb, auth_types.NoPrivileges, auth_types.VoterRole)
 }
-
 
 // CSRF Has to be set as a header through JS. Otherwise it's still vulnerable to CSRF. Based on assumption that malicious user can't run
 // scripts on browser that impersonate origin of my domain

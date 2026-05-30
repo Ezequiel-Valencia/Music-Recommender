@@ -19,20 +19,20 @@ func TestInsertRankedSongs(t *testing.T) {
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserBob, "password")
 	t_utils.FillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 	ranked_songs := []internal_types.RankedSong{}
-	for i := range 3{
+	for i := range 3 {
 		ranked_songs = append(ranked_songs, internal_types.RankedSong{
-			SongID: i + 1,
+			SongID:    i + 1,
 			CuratorId: t_utils.TestUserBob.UserId,
-			NumVotes: i,
+			NumVotes:  i,
 		})
 	}
 	var winnerID = 2
 	rankTable.InsertAlreadyRankedSongs(winnerID, ranked_songs)
 
 	sqlRows, _ := dbPointer.Query(`SELECT song_id, date_ranked, curator_id, winner FROM ranked`)
-	
+
 	i := 1
-	for sqlRows.Next(){
+	for sqlRows.Next() {
 		var songID, curatorID int
 		var dateRanked time.Time
 		var winner bool
@@ -46,8 +46,7 @@ func TestInsertRankedSongs(t *testing.T) {
 	}
 }
 
-// 
-func TestCalculateTodaysRank(t *testing.T){
+func TestCalculateTodaysRank(t *testing.T) {
 	adb, dbPointer := t_utils.GetTestDB()
 	defer t_utils.ResetTestDB()
 
@@ -55,8 +54,8 @@ func TestCalculateTodaysRank(t *testing.T){
 	t_utils.FillDBWithFakeSongs(dbPointer, adb, &t_utils.TestUserBob)
 
 	todaysSubmission := internal_types.TodaysRankingSubmission{Description: "Fake", CuratorId: t_utils.TestUserBob.UserId}
-	for i := range 3{
-		todaysSubmission.SongIDs = append(todaysSubmission.SongIDs, i + 1)
+	for i := range 3 {
+		todaysSubmission.SongIDs = append(todaysSubmission.SongIDs, i+1)
 	}
 
 	rankingDriver := CreateTodaysRankingDriver(dbPointer)
@@ -68,9 +67,8 @@ func TestCalculateTodaysRank(t *testing.T){
 	rankedSongs, topSongID, _ := rankingDriver.CalculateTodaysRank()
 
 	assert.Equal(t, 3, topSongID)
-	for i := range 3{
+	for i := range 3 {
 		assert.Equal(t, i, rankedSongs[i].NumVotes)
 	}
-	
-}
 
+}

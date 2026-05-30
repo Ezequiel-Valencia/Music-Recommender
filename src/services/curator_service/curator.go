@@ -29,34 +29,32 @@ func (h *Handler) RegisterCuratorRoutes(apiRouter *mux.Router, webPageRouter *mu
 	webPageRouter.HandleFunc("/curatorPage", auth.RequireAuth(h.curatorPage, h.musicDB.AbstractDB, auth_types.NoPrivileges, auth_types.OneSubmissionRole)).Methods("GET")
 }
 
-func (h *Handler) curatorPage(w http.ResponseWriter, r *http.Request, user auth_types.User){
+func (h *Handler) curatorPage(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	dir, _ := os.Getwd()
 
-	incFunc := template.FuncMap{"inc" : 
-	func(i int) int {
+	incFunc := template.FuncMap{"inc": func(i int) int {
 		return i + 1
 	}}
 	templateLocation := fmt.Sprintf("%s/templates/curator.html", dir)
 	curatorTemplate, err := template.New("curator.html").Funcs(incFunc).ParseFiles(templateLocation)
-	if (err != nil){
+	if err != nil {
 		log.Err(err).Msg("Problem templating curator page.")
 	}
 
 	alreadySubmitted := h.musicDB.GetUserSubmissionsToBeRanked(user)
 	submissionsString := fmt.Sprintf("%d / %d", len(alreadySubmitted), user.UserRole.GetRolesSubmissionLimit())
-	
+
 	templateMap := map[string]any{
-		"User": user.Username,
-		"Iterations": [...]int{1, 2, 3},
-		"Submissions": submissionsString,
+		"User":             user.Username,
+		"Iterations":       [...]int{1, 2, 3},
+		"Submissions":      submissionsString,
 		"AlreadySubmitted": alreadySubmitted,
 	}
 	if err := curatorTemplate.Execute(w, templateMap); err != nil {
 		log.Err(err).Msg("Problem executing curator template.")
 	}
-	
-}
 
+}
 
 func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	// submit music to be chosen to the data base.
@@ -66,17 +64,17 @@ func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_
 		return
 	}
 
-	for i := range 3{
-		songName := r.Form.Get(fmt.Sprintf("song-name-%d", i + 1))
-		artist := r.Form.Get(fmt.Sprintf("artist-%d", i + 1))
-		url := r.Form.Get(fmt.Sprintf("url-%d", i + 1))
+	for i := range 3 {
+		songName := r.Form.Get(fmt.Sprintf("song-name-%d", i+1))
+		artist := r.Form.Get(fmt.Sprintf("artist-%d", i+1))
+		url := r.Form.Get(fmt.Sprintf("url-%d", i+1))
 
 		songCheck := len(songName) < 50 && len(songName) > 2 && utils.IsStringAlphaNumericWithPunctuation(songName)
 		artistCheck := len(artist) < 30 && len(artist) > 2 && utils.IsStringAlphaNumericWithPunctuation(artist)
 		urlCheck := len(url) < 75 && utils.IsProperYouTubeLink(url)
-		if (songCheck && artistCheck && urlCheck){
+		if songCheck && artistCheck && urlCheck {
 			submitSong.Songs = append(submitSong.Songs, communication_types.SubmitSong{Name: songName, Artist: artist, SongURL: url})
-		} else{
+		} else {
 			http.Error(w, "Improper submission.", http.StatusBadRequest)
 			return
 		}
@@ -84,9 +82,9 @@ func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_
 
 	description := r.Form.Get("description-box")
 
-	if (len(description) < 250 && len(description) > 5 && utils.IsStringAlphaNumericWithPunctuation(description)){
+	if len(description) < 250 && len(description) > 5 && utils.IsStringAlphaNumericWithPunctuation(description) {
 		submitSong.Description = description
-	} else{
+	} else {
 		http.Error(w, "Improper description.", http.StatusBadRequest)
 		return
 	}

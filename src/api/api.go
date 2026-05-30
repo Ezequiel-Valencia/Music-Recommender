@@ -27,9 +27,9 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 
 	// https://www.stackhawk.com/blog/configuring-cors-for-go/
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{config.DynamicEnvs.WebPageDomain},
-		AllowCredentials: true, // Allow cookies from other origins to be sent
-		AllowedHeaders: []string{"x-csrf-token", "content-type"}, // Allows for the CSRF token to be sent
+		AllowedOrigins:   []string{config.DynamicEnvs.WebPageDomain},
+		AllowCredentials: true,                                     // Allow cookies from other origins to be sent
+		AllowedHeaders:   []string{"x-csrf-token", "content-type"}, // Allows for the CSRF token to be sent
 
 		// Tool for when CORS no longer works
 		// Debug: true,
@@ -48,7 +48,6 @@ func CreateMainServer(db *sql.DB, abd *db.AbstractDB) *http.Server {
 	admin_handler := admin.NewHandler(auth_table.CreateAuthTableDriver(db, abd), ranking_table.CreateTodaysRankingDriver(db))
 	admin_handler.RegisterAdminRoutes(subrouter, router)
 
-	
 	handlerWithCors := c.Handler(router)
 	return &http.Server{Addr: config.DynamicEnvs.HostAndPort, Handler: handlerWithCors}
 }

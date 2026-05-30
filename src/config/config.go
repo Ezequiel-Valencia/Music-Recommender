@@ -12,8 +12,8 @@ import (
 
 // Cookie Domain is the domain cookies should be made out to
 type Config struct {
-	HostAndPort string
-	CookieDomain string
+	HostAndPort   string
+	CookieDomain  string
 	WebPageDomain string
 
 	DBPort   int
@@ -26,24 +26,24 @@ type Config struct {
 }
 
 type StaticConfig struct {
-	TimeFormat  string
+	TimeFormat        string
 	SessionCookieName string
-	CSRFCookieName	string
-	CSRFHeaderName string
-	APIPrefix	string
+	CSRFCookieName    string
+	CSRFHeaderName    string
+	APIPrefix         string
 }
 
 var DynamicEnvs = initConfig()
 
 // Cookie Token should be 64 bytes, https://github.com/gorilla/securecookie
-var SecureCookie *securecookie.SecureCookie;
+var SecureCookie *securecookie.SecureCookie
 
 var StaticEnvs = StaticConfig{
-	TimeFormat: time.RFC3339,
+	TimeFormat:        time.RFC3339,
 	SessionCookieName: "session_token",
-	APIPrefix: "/api/v1",
-	CSRFCookieName: "csrf_token",
-	CSRFHeaderName: "X-CSRF-Token",
+	APIPrefix:         "/api/v1",
+	CSRFCookieName:    "csrf_token",
+	CSRFHeaderName:    "X-CSRF-Token",
 }
 
 func initConfig() Config {
@@ -60,7 +60,7 @@ func initConfig() Config {
 		DBUser:            getEnv("DB_USER", "postgres", true),
 		DBPasswd:          getEnv("POSTGRES_PASSWORD", "passwd", false),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "", false), // nothing means localhost
-		WebPageDomain:	   getEnv("WEB_PAGE_DOMAIN", "http://localhost:5173", false),
+		WebPageDomain:     getEnv("WEB_PAGE_DOMAIN", "http://localhost:5173", false),
 		AllowUserCreation: true,
 	}
 }

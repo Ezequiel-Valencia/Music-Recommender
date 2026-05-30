@@ -1,6 +1,6 @@
 package auth
 
-import (	
+import (
 	"log"
 	"music-recommender/config"
 	"music-recommender/db/auth_table"
@@ -114,7 +114,7 @@ func TestRequireAuth(t *testing.T) {
 		log.Print(tc.testCase)
 		if tc.sessionState == sessionAndCSRF {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
-		} else if (tc.sessionState == invalidCSRFHeader) {
+		} else if tc.sessionState == invalidCSRFHeader {
 			assert.Equal(t, http.StatusUnauthorized, rr.Code)
 		} else {
 			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
@@ -132,9 +132,9 @@ const (
 
 var requireAuthPrivilegesTC = []struct {
 	sessionState int
-	privilege auth_types.UserPrivileges
-	role auth_types.UserRoles
-	redirection bool
+	privilege    auth_types.UserPrivileges
+	role         auth_types.UserRoles
+	redirection  bool
 }{
 	{
 		minPrivileges,
@@ -168,7 +168,7 @@ var requireAuthPrivilegesTC = []struct {
 	},
 }
 
-func TestRequireAuthPrivileges(t *testing.T){
+func TestRequireAuthPrivileges(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
@@ -186,25 +186,24 @@ func TestRequireAuthPrivileges(t *testing.T){
 	request.AddCookie(&http.Cookie{Name: config.StaticEnvs.SessionCookieName, Value: cookie})
 	request.Header.Add(config.StaticEnvs.CSRFHeaderName, csrfCookie)
 
-	for _, tc := range requireAuthPrivilegesTC{
+	for _, tc := range requireAuthPrivilegesTC {
 		endPointWithAuth := RequireAuth(handler.loggedInUserInfo, handler.authTable.AbstractDB, tc.privilege, tc.role)
 		rr := httptest.NewRecorder()
 
-		if (tc.sessionState == elevatedPrivileges){
+		if tc.sessionState == elevatedPrivileges {
 			handler.authTable.SetUserPrivilege("Ezequiel", auth_types.AdminPrivileges)
 			handler.authTable.SetUserRole("Ezequiel", auth_types.CuratorRole)
 		}
 
 		endPointWithAuth(rr, request)
 
-		if (tc.redirection){
+		if tc.redirection {
 			assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
-		} else{
+		} else {
 			assert.NotEqual(t, http.StatusTemporaryRedirect, rr.Code)
 		}
 	}
 }
-
 
 func createAuthHandler() *Handler {
 	adb, dbPointer := t_utils.GetTestDB()

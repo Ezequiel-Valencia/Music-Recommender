@@ -86,5 +86,3 @@ func createAuthHandler() *Handler {
 	trt := ranking_table.CreateTodaysRankingDriver(dbPointer)
 	return NewHandler(at, trt)
 }
-
-

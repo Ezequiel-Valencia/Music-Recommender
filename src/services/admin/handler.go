@@ -17,7 +17,7 @@ import (
 )
 
 type Handler struct {
-	authTable *auth_table.AuthTable
+	authTable          *auth_table.AuthTable
 	todaysRankingTable *ranking_table.TodaysRankingDriver
 }
 
@@ -44,7 +44,7 @@ func (h *Handler) setUserCreationAllowance(w http.ResponseWriter, r *http.Reques
 	}
 
 	err := r.ParseForm()
-	if err != nil{
+	if err != nil {
 		log.Error().Msg("Problem parsing form to set user creation state.")
 		http.Error(w, "", http.StatusBadRequest)
 		return
@@ -57,19 +57,18 @@ func (h *Handler) setUserCreationAllowance(w http.ResponseWriter, r *http.Reques
 	w.Header().Add("HX-Refresh", "true")
 }
 
-
-func (h *Handler) setUserRole(w http.ResponseWriter, r *http.Request, user auth_types.User){
+func (h *Handler) setUserRole(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	err := r.ParseForm()
-	if err != nil{
+	if err != nil {
 		return
 	}
 	username := r.Form.Get("username-for-role")
-	if (!utils.IsStringAlphaNumeric(username)){
+	if !utils.IsStringAlphaNumeric(username) {
 		http.Error(w, "Misformed username.", http.StatusBadRequest)
 		return
 	}
 	role := auth_types.StringToUserRoles(r.Form.Get("user-role"))
-	if (role.EnumIndex() > user.UserRole.EnumIndex()){
+	if role.EnumIndex() > user.UserRole.EnumIndex() {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		log.Error().Msgf("User %s just tried to set %s to a role higher than themselves!", user.Username, username)
 		return
@@ -79,21 +78,20 @@ func (h *Handler) setUserRole(w http.ResponseWriter, r *http.Request, user auth_
 	w.Header().Add("HX-Refresh", "true")
 }
 
-
-func (h *Handler) setUserPrivilege(w http.ResponseWriter, r *http.Request, user auth_types.User){
+func (h *Handler) setUserPrivilege(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	err := r.ParseForm()
-	if err != nil{
+	if err != nil {
 		return
 	}
-	
+
 	username := r.Form.Get("username-for-privilege")
-	if (!utils.IsStringAlphaNumeric(username)){
+	if !utils.IsStringAlphaNumeric(username) {
 		http.Error(w, "Misformed username.", http.StatusBadRequest)
 		return
 	}
 
 	privilege := auth_types.StringToUserPrivileges(r.Form.Get("user-privilege"))
-	if (privilege.EnumIndex() > auth_types.AdminPrivileges.EnumIndex()){
+	if privilege.EnumIndex() > auth_types.AdminPrivileges.EnumIndex() {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		log.Error().Msgf("User %s just tried to set %s to a role higher than Admin!", user.Username, username)
 		return
@@ -103,40 +101,36 @@ func (h *Handler) setUserPrivilege(w http.ResponseWriter, r *http.Request, user 
 	w.Header().Add("HX-Refresh", "true")
 }
 
-func (h *Handler) skipSongSelection(w http.ResponseWriter, r *http.Request, user auth_types.User){
+func (h *Handler) skipSongSelection(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	log.Info().Msg("Skipped current song selection.")
 	h.todaysRankingTable.CleanTodaysRanking()
 	h.todaysRankingTable.SelectNewSongs()
 }
 
-
-func (h *Handler) getCuratorPage(w http.ResponseWriter, r *http.Request, user auth_types.User){
+func (h *Handler) getCuratorPage(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	dir, _ := os.Getwd()
 
-	tempFuncs := template.FuncMap{"privilegeToInt" : 
-	func(i string) int {
+	tempFuncs := template.FuncMap{"privilegeToInt": func(i string) int {
 		return auth_types.StringToUserPrivileges(i).EnumIndex()
 	},
-	"greaterThanOrEqual" : func(x int, y int) bool{
-		return x >= y
-	},
+		"greaterThanOrEqual": func(x int, y int) bool {
+			return x >= y
+		},
 	}
 
 	templateLocation := fmt.Sprintf("%s/templates/admin.html", dir)
 	adminTemplate, err := template.New("admin.html").Funcs(tempFuncs).ParseFiles(templateLocation)
-	if (err != nil){
+	if err != nil {
 		log.Err(err).Msg("Problem templating admin page.")
 	}
-	
+
 	templateMap := map[string]any{
-		"Username": user.Username,
-		"Privilege" : user.UserPrivileges.String(),
-		"PrivilegeInt": user.UserPrivileges.EnumIndex(),
+		"Username":          user.Username,
+		"Privilege":         user.UserPrivileges.String(),
+		"PrivilegeInt":      user.UserPrivileges.EnumIndex(),
 		"CreationIsAllowed": config.DynamicEnvs.AllowUserCreation, // It gets initialized when server state is read from DB, and changes when updates are made
 	}
 	if err := adminTemplate.Execute(w, templateMap); err != nil {
 		log.Err(err).Msg("Problem executing admin template.")
 	}
 }
-
-

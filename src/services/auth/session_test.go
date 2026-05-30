@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 var invalidUsernameOrPasswordTestCases = []struct {
 	testCase string
 	request  *http.Request
@@ -91,7 +90,6 @@ func TestLogin(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-
 func TestMaxNumberOfSessions(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
@@ -111,7 +109,6 @@ func TestMaxNumberOfSessions(t *testing.T) {
 		}
 	}
 }
-
 
 const (
 	noCookie int = iota
@@ -182,4 +179,3 @@ func TestLogOut(t *testing.T) {
 		assert.Equal(t, tc.bodResponse, string(bod))
 	}
 }
-

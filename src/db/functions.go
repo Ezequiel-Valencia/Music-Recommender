@@ -23,4 +23,3 @@ END;
 
 $reached_submit_limit$ LANGUAGE plpgsql;
 `
-
