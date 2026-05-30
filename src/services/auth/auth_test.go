@@ -75,7 +75,7 @@ func TestRequireAuth(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
-	handler.authTable.CreateUser("Ezequiel", "email", "pw", "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "email", "pw", "", auth_types.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
 	unEncodedSession, csrfUnEncode, _ := handler.authTable.GenerateAndStoreSessionID(user, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
 	endPointWithAuth := RequireAuthMinimumPrivileges(handler.deleteUser, handler.authTable.AbstractDB)
@@ -173,7 +173,7 @@ func TestRequireAuthPrivileges(t *testing.T){
 	defer t_utils.ResetTestDB()
 
 	// Create user
-	handler.authTable.CreateUser("Ezequiel", "email", "pw", "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "email", "pw", "", auth_types.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel")
 
 	// Create cookies

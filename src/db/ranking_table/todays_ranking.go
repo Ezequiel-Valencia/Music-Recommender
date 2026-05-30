@@ -33,7 +33,10 @@ func (mdb TodaysRankingDriver) GetTodaysVotes() communication_types.TodaysRankin
 	var totalVotes int = 0
 	for res.Next() {
 		var order, numVotes int
-		res.Scan(&order, &numVotes)
+		if err := res.Scan(&order, &numVotes); err != nil {
+			log.Err(err).Msg("Failed to scan todays ranking.")
+			continue
+		}
 		totalVotes += numVotes
 		todaysRanking.RankingMap[order] += float64(numVotes)
 	}
@@ -49,7 +52,9 @@ func (mdb TodaysRankingDriver) GetTodaysVotes() communication_types.TodaysRankin
 
 func (mdb TodaysRankingDriver) UserAlreadyVoteToday(user auth_types.User) bool {
 	var lastVote time.Time
-	mdb.db.QueryRow("SELECT last_vote FROM users WHERE user_id = $1", user.UserId).Scan(&lastVote)
+	if err := mdb.db.QueryRow("SELECT last_vote FROM users WHERE user_id = $1", user.UserId).Scan(&lastVote); err != nil {
+		log.Err(err).Msg("Failed to get user's last vote.")
+	}
 	return !isYesterdayOrBefore(lastVote)
 }
 
@@ -86,14 +91,19 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 	for rows.Next() {
 		var songID, order int
 		var description, songName, songArtist, songResource string
-		rows.Scan(&songID, &curatorID, &description, &order, &songName, &songArtist, &songResource)
+		if err := rows.Scan(&songID, &curatorID, &description, &order, &songName, &songArtist, &songResource); err != nil {
+			log.Err(err).Msg("Failed to scan todays music.")
+			continue
+		}
 		musicPayload.CuratorDescription = description
 
 		musicEntry := communication_types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
 		musicPayload.MusicEntries = append(musicPayload.MusicEntries, musicEntry)
 	}
 	var curatorName string
-	mdb.db.QueryRow(`SELECT username FROM users WHERE user_id = $1`, curatorID).Scan(&curatorName)
+	if err := mdb.db.QueryRow(`SELECT username FROM users WHERE user_id = $1`, curatorID).Scan(&curatorName); err != nil {
+		log.Err(err).Msg("Failed to get curator name.")
+	}
 	musicPayload.CuratorName = curatorName
 
 	return &musicPayload
@@ -102,9 +112,12 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 // Dumb for now
 func (mdb TodaysRankingDriver) SelectNewSongs() {
 	var newSongListTime time.Time
-	mdb.db.QueryRow(`SELECT date_submitted 
+	if err := mdb.db.QueryRow(`SELECT date_submitted
 	FROM toBeRanked ORDER BY RANDOM()
-	LIMIT 1`).Scan(&newSongListTime)
+	LIMIT 1`).Scan(&newSongListTime); err != nil {
+		log.Err(err).Msg("Failed to select next song list from queue.")
+		return
+	}
 
 	
 	sqlRows, _ := mdb.db.Query(`SELECT song_id, description, curator_id FROM toBeRanked 
@@ -114,13 +127,18 @@ func (mdb TodaysRankingDriver) SelectNewSongs() {
 	for sqlRows.Next(){
 		var description string
 		var curatorId, songId int
-		sqlRows.Scan(&songId, &description, &curatorId)
+		if err := sqlRows.Scan(&songId, &description, &curatorId); err != nil {
+			log.Err(err).Msg("Failed to scan song for ranking.")
+			continue
+		}
 		whatWillBeRankedToday.CuratorId = curatorId
 		whatWillBeRankedToday.Description = description
 		whatWillBeRankedToday.SongIDs = append(whatWillBeRankedToday.SongIDs, songId)
 	}
-	mdb.db.Exec(`DELETE FROM toBeRanked 
-	WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
+	if _, err := mdb.db.Exec(`DELETE FROM toBeRanked
+	WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat)); err != nil {
+		log.Err(err).Msg("Failed to clean toBeRanked after selection.")
+	}
 
 	mdb.setTodaysRanking(&whatWillBeRankedToday)
 }

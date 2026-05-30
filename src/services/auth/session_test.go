@@ -59,7 +59,7 @@ func TestLogin(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	hp, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
 
 	for _, tc := range invalidUsernameOrPasswordTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -97,7 +97,7 @@ func TestMaxNumberOfSessions(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	hashedPW, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hashedPW, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hashedPW, "", auth_types.LocalUserCreationSource.String())
 
 	request := httptest.NewRequest("POST", "/api/v1/register", t_utils.CreateHTTPBodyURLEncoded("username=Ezequiel&password=password123&email=fake@gmail.com"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -146,7 +146,7 @@ func TestLogOut(t *testing.T) {
 	handler.register(rr, req)
 	sessionCookie := rr.Result().Cookies()[0]
 	var decodedSession string
-	config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedSession)
+	_ = config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedSession)
 
 	for _, tc := range logOutTestCases {
 		var testRecorder = httptest.NewRecorder()

@@ -44,12 +44,17 @@ func (h *Handler) RegisterAuthRoutes(router *mux.Router) {
 }
 
 func (h *Handler) loggedInUserInfo(w http.ResponseWriter, r *http.Request, user auth_types.User) {
-	utils.WriteJSON(w, communication_types.UserDTO{Username: user.Username,
-		CreationDate: user.CreationDate.Format(time.DateOnly), Role: user.UserRole.String()}, 200)
+	if err := utils.WriteJSON(w, communication_types.UserDTO{Username: user.Username,
+		CreationDate: user.CreationDate.Format(time.DateOnly), Role: user.UserRole.String()}, 200); err != nil {
+		log.Err(err).Msg("Failed to write user info JSON.")
+	}
 }
 
 func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request, user auth_types.User) {
-	h.authTable.DeleteUser(user.Username, user.UserId)
+	if err := h.authTable.DeleteUser(user.Username, user.UserId); err != nil {
+		log.Err(err).Msg("Failed to delete user.")
+		http.Error(w, "Failed to delete user.", http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request, user auth_types.User) {
@@ -102,9 +107,11 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.storeUserSessionAsCookie(w, loginUser.Username)
-	utils.WriteJSON(w, communication_types.UserDTO{Username: loginUser.Username,
+	if err := utils.WriteJSON(w, communication_types.UserDTO{Username: loginUser.Username,
 		CreationDate: loginUser.CreationDate.Format(config.StaticEnvs.TimeFormat),
-		Role:         loginUser.UserRole.String()}, 200)
+		Role:         loginUser.UserRole.String()}, 200); err != nil {
+		log.Err(err).Msg("Failed to write login response JSON.")
+	}
 
 }
 
@@ -115,7 +122,9 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, user auth_types
 		return
 	}
 	var decodedCookie string = ""
-	config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedCookie)
+	if err := config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, sessionCookie.Value, &decodedCookie); err != nil {
+		log.Err(err).Msg("Failed to decode logout cookie.")
+	}
 	err = h.authTable.RemoveSessionTokens(user, decodedCookie)
 	if err != nil {
 		http.Error(w, "Can't logout", http.StatusBadRequest)
@@ -181,11 +190,17 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.authTable.CreateUser(username, email, hashedPassword, "", auth_types.LocalUserCreationSource.String())
+	if err := h.authTable.CreateUser(username, email, hashedPassword, "", auth_types.LocalUserCreationSource.String()); err != nil {
+		http.Error(w, "Unknown error.", http.StatusInternalServerError)
+		log.Err(err).Msg("Failed to create user during registration.")
+		return
+	}
 	h.storeUserSessionAsCookie(w, username)
 	user := h.authTable.GetUserStructFromUsername(username)
-	utils.WriteJSON(w, communication_types.UserDTO{Username: username,
+	if err := utils.WriteJSON(w, communication_types.UserDTO{Username: username,
 		CreationDate: user.CreationDate.Format(config.StaticEnvs.TimeFormat),
-		Role:         user.UserRole.String()}, 200)
+		Role:         user.UserRole.String()}, 200); err != nil {
+		log.Err(err).Msg("Failed to write register response JSON.")
+	}
 }
 

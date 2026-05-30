@@ -36,7 +36,7 @@ func TestInsertRankedSongs(t *testing.T) {
 		var songID, curatorID int
 		var dateRanked time.Time
 		var winner bool
-		sqlRows.Scan(&songID, &dateRanked, &curatorID, &winner)
+		_ = sqlRows.Scan(&songID, &dateRanked, &curatorID, &winner)
 
 		assert.Equal(t, i, songID)
 		assert.Equal(t, i == winnerID, winner)

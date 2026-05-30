@@ -68,7 +68,7 @@ func TestRegister(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	hp, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
 
 	for _, tc := range registerTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -98,8 +98,8 @@ func TestPasswordUpdate(t *testing.T) {
 	defer t_utils.ResetTestDB()
 
 	ogPassword, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "Ezequiel@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
-	handler.authTable.CreateUser("Ezequiel2", "Ezequiel2@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "Ezequiel@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel2", "Ezequiel2@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
 
 	// Both passwords are the same, nothing has changed

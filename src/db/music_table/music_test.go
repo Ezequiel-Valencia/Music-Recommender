@@ -53,7 +53,7 @@ func TestInsertSet(t *testing.T){
 	var description string
 	var curatorID int
 	var timeSubmitted time.Time
-	dbPointer.QueryRow(`SELECT description, curator_id, date_submitted FROM toBeRanked WHERE song_id = 1`).Scan(&description, &curatorID, &timeSubmitted)
+	_ = dbPointer.QueryRow(`SELECT description, curator_id, date_submitted FROM toBeRanked WHERE song_id = 1`).Scan(&description, &curatorID, &timeSubmitted)
 	assert.Equal(t, "Fake Description", description)
 	assert.Equal(t, t_utils.TestUserCuratorModerator.UserId, curatorID)
 	sqlRows, _ := dbPointer.Query(`SELECT date_submitted FROM toBeRanked`)
@@ -61,27 +61,27 @@ func TestInsertSet(t *testing.T){
 	// Make sure all of the time stamps for the set of 3 songs are the same
 	for sqlRows.Next(){
 		var timeGiven time.Time
-		sqlRows.Scan(&timeGiven)
+		_ = sqlRows.Scan(&timeGiven)
 		assert.True(t, timeSubmitted.Equal(timeGiven))
 	}
 
 	var submitCount int
-	dbPointer.QueryRow(`SELECT song_sets_submitted FROM users WHERE user_id = $1`, t_utils.TestUserCuratorModerator.UserId).Scan(&submitCount)
+	_ = dbPointer.QueryRow(`SELECT song_sets_submitted FROM users WHERE user_id = $1`, t_utils.TestUserCuratorModerator.UserId).Scan(&submitCount)
 	assert.Equal(t, 1, submitCount)
 
 	/////////////////
 	// Limit Test //
 	////////////////
 	// Make sure that curator can not submit more than the limit for their role
-	dbPointer.Exec(`UPDATE users SET song_sets_submitted = $1 WHERE user_id = $2`, 
+	_, _ = dbPointer.Exec(`UPDATE users SET song_sets_submitted = $1 WHERE user_id = $2`,
 	t_utils.TestUserCuratorModerator.UserRole.GetRolesSubmissionLimit(),
 	t_utils.TestUserCuratorModerator.UserId)
 
-	err = driver.InsertSongSet(&communication_types.SubmitSongSet{Description: "Fake Description", 
+	err = driver.InsertSongSet(&communication_types.SubmitSongSet{Description: "Fake Description",
 	Songs: fakeSongSet}, t_utils.TestUserCuratorModerator)
 	expectedErrorAndRowCount(t, dbPointer, err, true, 3)
 
-	dbPointer.Exec(`UPDATE users SET song_sets_submitted = $1 WHERE user_id = $2`, 
+	_, _ = dbPointer.Exec(`UPDATE users SET song_sets_submitted = $1 WHERE user_id = $2`,
 	t_utils.TestUserCuratorModerator.UserRole.GetRolesSubmissionLimit() + 1,
 	t_utils.TestUserCuratorModerator.UserId)
 

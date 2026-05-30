@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"music-recommender/api"
 	"music-recommender/config"
 	"music-recommender/types/internal_types/auth_types"
@@ -33,11 +34,17 @@ func TestMain(m *testing.M) {
 	config.DynamicEnvs.HostAndPort = "localhost:9999"
 	adb, db := t_utils.GetTestDB()
 	apiSever := api.CreateMainServer(db, adb)
-	go apiSever.ListenAndServe()
+	go func() {
+		if err := apiSever.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
 
 	m.Run()
 
-	apiSever.Shutdown(context.TODO())
+	if err := apiSever.Shutdown(context.TODO()); err != nil {
+		log.Fatal(err)
+	}
 	t_utils.TearDownTestDB()
 }
 
@@ -101,11 +108,11 @@ func TestDailyDBTask(t *testing.T) {
 	t_utils.CreateFakeUser(dbPointer, &testUser, "password")
 
 	// Old Session
-	dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date) 
+	_, _ = dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date)
 	VALUES($1, $2, $3, $4)`, testUser.UserId, "ses", "crf", nowTime.Add(twoHundredDaysAgo).UTC().Format(config.StaticEnvs.TimeFormat))
 
 	// New Session
-	dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date) 
+	_, _ = dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date)
 	VALUES($1, $2, $3, $4)`, testUser.UserId, "ses", "crf", nowTime.UTC().Format(config.StaticEnvs.TimeFormat))
 
 	res, _ := dbPointer.Exec("SELECT * FROM sessions")
@@ -121,7 +128,7 @@ func TestDailyDBTask(t *testing.T) {
 	assert.Equal(t, expectedNum, resNum)
 
 	var sessionCreationDate string
-	dbPointer.QueryRow("SELECT creation_date FROM sessions").Scan(&sessionCreationDate)
+	_ = dbPointer.QueryRow("SELECT creation_date FROM sessions").Scan(&sessionCreationDate)
 	assert.Equal(t, nowTime.UTC().Format(config.StaticEnvs.TimeFormat), sessionCreationDate)
 }
 
@@ -133,6 +140,6 @@ func TestMoreThanOneOwnerChecker(t *testing.T) {
 	assert.False(t, isThereMoreThanOneOwner(dbPointer), "There is one owner")
 	t_utils.CreateFakeUser(dbPointer, &auth_types.User{Username: "Oscar", UserPrivileges: auth_types.OwnerPrivileges}, "passwd")
 	assert.True(t, isThereMoreThanOneOwner(dbPointer), "Oscar wants to be owner too.")
-	dbPointer.Exec("DELETE FROM users WHERE username = 'Oscar'")
+	_, _ = dbPointer.Exec("DELETE FROM users WHERE username = 'Oscar'")
 	assert.False(t, isThereMoreThanOneOwner(dbPointer), "Back to one. Oscar is banned.")
 }

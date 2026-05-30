@@ -28,7 +28,10 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed
 
 		// Is your session cookie valid, and have a user tied to it?
 		var sessionCookie string
-		config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, encodedSessionCookie.Value, &sessionCookie)
+		if err := config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, encodedSessionCookie.Value, &sessionCookie); err != nil {
+			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
+			return
+		}
 		user, err := adb.GetUserFromSessionID(sessionCookie, csrfToken, requiresCSRF)
 		if err != nil {
 			http.Error(w, "Unable to perform action. Please clear your cookies and login again.", http.StatusUnauthorized)
@@ -61,7 +64,7 @@ func retrieveCSRFToken(r *http.Request) (string, bool) {
 			return "", true
 		}
 		var decoded string
-		config.SecureCookie.Decode(config.StaticEnvs.CSRFCookieName, header, &decoded)
+		_ = config.SecureCookie.Decode(config.StaticEnvs.CSRFCookieName, header, &decoded)
 		return decoded, true
 	}
 	return "", false

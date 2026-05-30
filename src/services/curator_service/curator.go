@@ -51,7 +51,9 @@ func (h *Handler) curatorPage(w http.ResponseWriter, r *http.Request, user auth_
 		"Submissions": submissionsString,
 		"AlreadySubmitted": alreadySubmitted,
 	}
-	curatorTemplate.Execute(w, templateMap)
+	if err := curatorTemplate.Execute(w, templateMap); err != nil {
+		log.Err(err).Msg("Problem executing curator template.")
+	}
 	
 }
 
@@ -89,7 +91,10 @@ func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_
 		return
 	}
 
-	h.musicDB.InsertSongSet(&submitSong, user)
+	if err := h.musicDB.InsertSongSet(&submitSong, user); err != nil {
+		http.Error(w, "Failed to submit music.", http.StatusBadRequest)
+		return
+	}
 
 	w.Header().Add("HX-Refresh", "true")
 }

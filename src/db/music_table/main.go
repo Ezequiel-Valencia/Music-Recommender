@@ -40,7 +40,9 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 
 	
 	var hitLimit bool
-	mdb.db.QueryRow(`SELECT reached_submit_limit($1, $2)`, curator.UserId, curator.UserRole.GetRolesSubmissionLimit()).Scan(&hitLimit)
+	if err := mdb.db.QueryRow(`SELECT reached_submit_limit($1, $2)`, curator.UserId, curator.UserRole.GetRolesSubmissionLimit()).Scan(&hitLimit); err != nil {
+		log.Err(err).Msg("Failed to check submission limit.")
+	}
 
 	if (hitLimit){
 		return errors.New("user has reached song submission limit")
@@ -50,8 +52,10 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 
 	for _, song := range songSet.Songs{
 		songID := mdb.InsertNewSong(&song, curator)
-		mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
-		VALUES($1, $2, $3, $4)`, songID, songSet.Description, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat))
+		if _, err := mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
+		VALUES($1, $2, $3, $4)`, songID, songSet.Description, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat)); err != nil {
+			log.Err(err).Msg("Can't queue song for ranking.")
+		}
 	}
 	return nil
 }
@@ -73,7 +77,10 @@ func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []commu
 				return submissions
 			}
 			var description, name, artist, songURL string
-			result.Scan(&description, &name, &artist, &songURL)
+			if err := result.Scan(&description, &name, &artist, &songURL); err != nil {
+				log.Err(err).Msg("Problem scanning song submission.")
+				return submissions
+			}
 			songSet.Description = description
 			songSet.Songs = append(
 				songSet.Songs, 

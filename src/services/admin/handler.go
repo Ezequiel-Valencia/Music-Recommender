@@ -134,7 +134,9 @@ func (h *Handler) getCuratorPage(w http.ResponseWriter, r *http.Request, user au
 		"PrivilegeInt": user.UserPrivileges.EnumIndex(),
 		"CreationIsAllowed": config.DynamicEnvs.AllowUserCreation, // It gets initialized when server state is read from DB, and changes when updates are made
 	}
-	adminTemplate.Execute(w, templateMap)
+	if err := adminTemplate.Execute(w, templateMap); err != nil {
+		log.Err(err).Msg("Problem executing admin template.")
+	}
 }
 
 

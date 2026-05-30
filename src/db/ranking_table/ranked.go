@@ -22,10 +22,12 @@ func CreateRankedDriver(db *sql.DB) *RankedDriver{
 func (rd RankedDriver) InsertAlreadyRankedSongs(topSongId int, rankedSongs []internal_types.RankedSong){
 	voteDate := time.Now().AddDate(0, 0, -1)
 	for _, rs := range rankedSongs{
-		rd.dbPointer.Exec(`INSERT INTO ranked(
+		if _, err := rd.dbPointer.Exec(`INSERT INTO ranked(
 			song_id, curator_id, date_ranked, num_votes, winner
-		) VALUES($1, $2, $3, $4, $5)`, rs.SongID, rs.CuratorId, 
-		voteDate.Format(config.StaticEnvs.TimeFormat), rs.NumVotes, rs.SongID == topSongId)
+		) VALUES($1, $2, $3, $4, $5)`, rs.SongID, rs.CuratorId,
+		voteDate.Format(config.StaticEnvs.TimeFormat), rs.NumVotes, rs.SongID == topSongId); err != nil {
+			log.Err(err).Msg("Failed to insert ranked song.")
+		}
 	}
 }
 
@@ -42,7 +44,10 @@ func (rd TodaysRankingDriver) CalculateTodaysRank()([]internal_types.RankedSong,
 	for res.Next() {
 		var song_id, numVotes, curator_id int
 
-		res.Scan(&song_id, &numVotes, &curator_id)
+		if err := res.Scan(&song_id, &numVotes, &curator_id); err != nil {
+			log.Err(err).Msg("Failed to scan ranked song.")
+			continue
+		}
 		if (numVotes > topVotes){
 			topVotes = numVotes
 			topSongId = song_id

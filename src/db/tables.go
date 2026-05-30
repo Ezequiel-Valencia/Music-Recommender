@@ -112,8 +112,12 @@ func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
 	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable,
 		createRankingTable, createTodaysRankingTable, serverState, createToBeRankedTable}
 	functions := [...]string{hasUserSubmitCountHitLimit}
-	createDBHelper(db, testMode, tables[:], "Tables")
-	createDBHelper(db, testMode, functions[:], "Functions")
+	if err := createDBHelper(db, testMode, tables[:], "Tables"); err != nil {
+		return err
+	}
+	if err := createDBHelper(db, testMode, functions[:], "Functions"); err != nil {
+		return err
+	}
 	log.Info().Msg("Created Tables and Functions")
 	return nil
 }
@@ -141,10 +145,14 @@ func initializeOrGetServerState(db *sql.DB) {
 	if resNum > 1 {
 		log.Fatal().Msg("There is more than one row for server state.")
 	} else if resNum == 1{
-		db.QueryRow("SELECT allow_user_creation FROM server_state").Scan(&config.DynamicEnvs.AllowUserCreation)
+		if err := db.QueryRow("SELECT allow_user_creation FROM server_state").Scan(&config.DynamicEnvs.AllowUserCreation); err != nil {
+			log.Err(err).Msg("Failed to read server state.")
+		}
 	} else if resNum == 0{
-		db.Exec(`INSERT INTO server_state(allow_user_creation, update_date)
-		VALUES($1, $2)`, true, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
+		if _, err := db.Exec(`INSERT INTO server_state(allow_user_creation, update_date)
+		VALUES($1, $2)`, true, time.Now().UTC().Format(config.StaticEnvs.TimeFormat)); err != nil {
+			log.Err(err).Msg("Failed to initialize server state.")
+		}
 		return
 	}
 }
