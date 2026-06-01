@@ -1,9 +1,9 @@
 package internal_types
 
 type TodaysRankingSubmission struct {
-	SongIDs     []int
+	SongIDs        []int
 	Description_Id int
-	CuratorId int
+	CuratorId      int
 }
 
 type RankedSong struct {

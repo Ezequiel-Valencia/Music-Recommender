@@ -57,13 +57,13 @@ func TestDisablingUserCreation(t *testing.T) {
 }
 
 // Test that ensures if any unknown value is pulled from the permissions table, the lowest form of it is returned
-func TestLeastPrivilegeForUnknowns(t *testing.T){
+func TestLeastPrivilegeForUnknowns(t *testing.T) {
 	adb, dbPointer := t_utils.GetTestDB()
 	var userID int
-	dbPointer.QueryRow(`INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, creation_date) 
+	_ = dbPointer.QueryRow(`INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, creation_date)
 	VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`, "Ezequiel", "fake1@gmail.fake", "f", "f", "f", time.Now()).Scan(&userID)
 
-	dbPointer.Exec(`INSERT INTO userPrivileges(user_id, moderator, music_submission) VALUES($1, $2, $3)`, userID, "OwnerOfTheWorld", "AllTheSongs")
+	_, _ = dbPointer.Exec(`INSERT INTO userPrivileges(user_id, moderator, music_submission) VALUES($1, $2, $3)`, userID, "OwnerOfTheWorld", "AllTheSongs")
 
 	authDriver := CreateAuthTableDriver(dbPointer, adb)
 	user := authDriver.GetUserStructFromUsername("Ezequiel")
@@ -73,4 +73,3 @@ func TestLeastPrivilegeForUnknowns(t *testing.T){
 	assert.Equal(t, auth_types.NoPrivileges, user.UserPrivileges)
 	assert.Equal(t, auth_types.VoterRole, user.UserRole)
 }
-

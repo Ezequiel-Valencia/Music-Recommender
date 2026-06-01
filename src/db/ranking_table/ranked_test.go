@@ -54,8 +54,8 @@ func TestCalculateTodaysRank(t *testing.T) {
 	t_utils.FillDBWithFakeSongsAndDescription(dbPointer, adb, &t_utils.TestUserBob, "Fake")
 
 	todaysSubmission := internal_types.TodaysRankingSubmission{Description_Id: 1, CuratorId: t_utils.TestUserBob.UserId}
-	for i := range 3{
-		todaysSubmission.SongIDs = append(todaysSubmission.SongIDs, i + 1)
+	for i := range 3 {
+		todaysSubmission.SongIDs = append(todaysSubmission.SongIDs, i+1)
 	}
 
 	rankingDriver := CreateTodaysRankingDriver(dbPointer)

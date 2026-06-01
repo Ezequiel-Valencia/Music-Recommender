@@ -19,7 +19,7 @@ type Handler struct {
 	adb          *db.AbstractDB
 }
 
-func NewHandler(mdb *ranking_table.TodaysRankingDriver, ranked *ranking_table.RankedDriver,adb *db.AbstractDB) *Handler {
+func NewHandler(mdb *ranking_table.TodaysRankingDriver, ranked *ranking_table.RankedDriver, adb *db.AbstractDB) *Handler {
 	return &Handler{mdb, ranked, adb}
 }
 
@@ -32,7 +32,7 @@ func (h *Handler) RegisterAnonymousUserRoutes(router *mux.Router) {
 // https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body
 
 func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user auth_types.User) {
-	var vote communication_types.SubmitVotePayload = communication_types.SubmitVotePayload{}
+	vote := communication_types.SubmitVotePayload{}
 	err := utils.DecodeJSONBody(w, r, &vote)
 	if err != nil {
 		log.Err(err).Msg("Problem decoding users vote.")
@@ -67,5 +67,7 @@ func (h *Handler) handleGettingTodaysMusic(w http.ResponseWriter, r *http.Reques
 func (h *Handler) handleGettingUsersPastVotes(w http.ResponseWriter, r *http.Request, user auth_types.User) {
 	// get past music choices with their dates
 	pastVotes := h.rankedDriver.GetSongsUserVotedFor(user)
-	utils.WriteJSON(w, pastVotes, 200)
+	if err := utils.WriteJSON(w, pastVotes, 200); err != nil {
+		log.Err(err).Msg("Failed to write past votes JSON.")
+	}
 }

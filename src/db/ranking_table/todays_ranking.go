@@ -75,9 +75,12 @@ func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_ty
 	}
 
 	var songId int
-	mdb.db.QueryRow(`SELECT song_id FROM todaysRanking WHERE song_order = $1`, submitVote.SongOrder).Scan(&songId)
+	if err := mdb.db.QueryRow(`SELECT song_id FROM todaysRanking WHERE song_order = $1`, submitVote.SongOrder).Scan(&songId); err != nil {
+		log.Err(err).Msg("Failed to get song id for vote.")
+		return
+	}
 	_, err = mdb.db.Exec(`INSERT INTO userVotes(user_id, song_id, date) VALUES($1, $2, $3)`, user.UserId, songId, timeStamp)
-	if err != nil{
+	if err != nil {
 		log.Err(err).Msg("Inserting user vote did not work.")
 	}
 }
@@ -100,7 +103,10 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 	for rows.Next() {
 		var order int
 		var description, songName, songArtist, songResource string
-		rows.Scan(&curatorID, &description, &order, &songName, &songArtist, &songResource)
+		if err := rows.Scan(&curatorID, &description, &order, &songName, &songArtist, &songResource); err != nil {
+			log.Err(err).Msg("Failed to scan todays music row.")
+			continue
+		}
 		musicPayload.CuratorDescription = description
 
 		musicEntry := communication_types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
@@ -115,7 +121,7 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 	return &musicPayload
 }
 
-func (mdb TodaysRankingDriver) AnySongsToBeRanked() bool{
+func (mdb TodaysRankingDriver) AnySongsToBeRanked() bool {
 	sqlRows, _ := mdb.db.Exec(`SELECT * FROM toBeRanked`)
 	res, _ := sqlRows.RowsAffected()
 	return res > 0
@@ -131,14 +137,16 @@ func (mdb TodaysRankingDriver) SelectNewSongs() {
 		return
 	}
 
-	
 	sqlRows, _ := mdb.db.Query(`SELECT song_id, description_id, curator_id FROM toBeRanked 
 		WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
-	
-	var whatWillBeRankedToday internal_types.TodaysRankingSubmission = internal_types.TodaysRankingSubmission{}
-	for sqlRows.Next(){
+
+	whatWillBeRankedToday := internal_types.TodaysRankingSubmission{}
+	for sqlRows.Next() {
 		var description_id, curatorId, songId int
-		sqlRows.Scan(&songId, &description_id, &curatorId)
+		if err := sqlRows.Scan(&songId, &description_id, &curatorId); err != nil {
+			log.Err(err).Msg("Failed to scan song selection row.")
+			continue
+		}
 		whatWillBeRankedToday.CuratorId = curatorId
 		whatWillBeRankedToday.Description_Id = description_id
 		whatWillBeRankedToday.SongIDs = append(whatWillBeRankedToday.SongIDs, songId)

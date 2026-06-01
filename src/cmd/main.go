@@ -64,7 +64,7 @@ func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
 func countVoteAndPlaceNewSongs(dbPointer *sql.DB) {
 	// Get the rankings
 	todaysRankingDriver := ranking_table.CreateTodaysRankingDriver(dbPointer)
-	if (!todaysRankingDriver.AnySongsToBeRanked()){
+	if !todaysRankingDriver.AnySongsToBeRanked() {
 		log.Info().Msg("No new songs to select from.")
 		return
 	}

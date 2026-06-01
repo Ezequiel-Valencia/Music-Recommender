@@ -116,8 +116,8 @@ func CreateFakeUser(db *sql.DB, user *auth_types.User, nonHashedPasswd string) {
 	var userID int
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
-	db.QueryRow(executeString, user.Username, user.Email, 
-		hashedPassword, "", user.CreationSource, 
+	_ = db.QueryRow(executeString, user.Username, user.Email,
+		hashedPassword, "", user.CreationSource,
 		user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat)).Scan(&userID)
 	_, err := db.Exec(`INSERT INTO userPrivileges(user_id, moderator, music_submission)
 	VALUES($1, $2, $3)`, userID, user.UserPrivileges.String(), user.UserRole.String())
@@ -135,11 +135,11 @@ func FillDBWithFakeSongsAndDescription(dbPointer *sql.DB, adb *db.AbstractDB, us
 	musicDriver := music_table.CreateMusicTableDriver(dbPointer, adb)
 	for i := range 10 {
 		submitSong := communication_types.SubmitSong{Name: fmt.Sprintf("Song %d", i),
-			Artist: fmt.Sprintf("Artist %d", i), SongURL: fmt.Sprintf("https://youtu.be/MPANooz_b9Q%d", i),}
+			Artist: fmt.Sprintf("Artist %d", i), SongURL: fmt.Sprintf("https://youtu.be/MPANooz_b9Q%d", i)}
 		musicDriver.InsertNewSong(&submitSong, *user)
 	}
 	_, err := dbPointer.Exec(`INSERT INTO submissionDescriptions(description) VALUES($1)`, fakeDescription)
-	if err != nil{
+	if err != nil {
 		log.Print(err)
 	}
 }

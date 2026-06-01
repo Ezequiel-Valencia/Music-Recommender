@@ -32,21 +32,26 @@ func (rd RankedDriver) InsertAlreadyRankedSongs(topSongId int, rankedSongs []int
 	}
 }
 
-
-func (mdb RankedDriver) GetSongsUserVotedFor(user auth_types.User) []communication_types.SongsUserVotedOnDTO{
+func (mdb RankedDriver) GetSongsUserVotedFor(user auth_types.User) []communication_types.SongsUserVotedOnDTO {
 	results, err := mdb.dbPointer.Query(`SELECT song_id, date FROM userVotes WHERE user_id = $1 
 	ORDER BY "date"::date asc LIMIT 30`, user.UserId)
-	if (err != nil){
+	if err != nil {
 		log.Err(err).Msgf("Problem getting users %s songs they've voted on.", user.Username)
 	}
-	var songSet []communication_types.SongsUserVotedOnDTO = []communication_types.SongsUserVotedOnDTO{}
-	for results.Next(){
+	songSet := []communication_types.SongsUserVotedOnDTO{}
+	for results.Next() {
 		var songId int
 		var date time.Time
 		var name, artist, songURL, genre, subgenre string
-		results.Scan(&songId, &date)
-		mdb.dbPointer.QueryRow(`SELECT name, artist, songURL, genre, subgenre 
-		FROM music WHERE id = $1`, songId).Scan(&name, &artist, &songURL, &genre, &subgenre)
+		if err := results.Scan(&songId, &date); err != nil {
+			log.Err(err).Msg("Failed to scan user vote.")
+			continue
+		}
+		if err := mdb.dbPointer.QueryRow(`SELECT name, artist, songURL, genre, subgenre
+		FROM music WHERE id = $1`, songId).Scan(&name, &artist, &songURL, &genre, &subgenre); err != nil {
+			log.Err(err).Msg("Failed to scan song details.")
+			continue
+		}
 		itemInSongSet := communication_types.SongsUserVotedOnDTO{Title: name, Artist: artist, SongURL: songURL, Date: date}
 		songSet = append([]communication_types.SongsUserVotedOnDTO{itemInSongSet}, songSet...)
 	}

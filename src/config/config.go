@@ -21,7 +21,7 @@ type Config struct {
 	DBName   string
 	DBUser   string
 	DBPasswd string
-	DBSsl	 bool
+	DBSsl    bool
 
 	AllowUserCreation bool
 }

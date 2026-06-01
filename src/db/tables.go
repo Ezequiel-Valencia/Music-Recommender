@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-
 // User Identity instead of serial for UID's cause it's SQL compliant
 // https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
 const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
@@ -124,10 +123,10 @@ const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
 
 // 0 for table primary key is special value, will not be used and can be assumed as NULL
 func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
-	tables := [...]string{createUserTable, createMusicTable, 
+	tables := [...]string{createUserTable, createMusicTable,
 		createUserAuthorizationTable,
 		createDescriptionsTable, createSessionIDTable,
-		createRankingTable, createTodaysRankingTable, 
+		createRankingTable, createTodaysRankingTable,
 		serverState, createToBeRankedTable, createUserVotesTable}
 	functions := [...]string{hasUserSubmitCountHitLimit}
 	if err := createDBHelper(db, testMode, tables[:], "Tables"); err != nil {

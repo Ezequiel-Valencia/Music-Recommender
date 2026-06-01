@@ -49,10 +49,9 @@ type UserDTO struct {
 	Role         string
 }
 
-type SongsUserVotedOnDTO struct{
-	Title string
-	Artist string
+type SongsUserVotedOnDTO struct {
+	Title   string
+	Artist  string
 	SongURL string
-	Date time.Time
+	Date    time.Time
 }
-
