@@ -98,4 +98,3 @@ func (mdb AuthTable) SetUserPrivilege(user auth_types.User, userPrivilege auth_t
 		log.Err(err).Msg("Can't set user role")
 	}
 }
-

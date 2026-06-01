@@ -50,14 +50,18 @@ func (h *Handler) submitAVote(w http.ResponseWriter, r *http.Request, user auth_
 	}
 
 	h.rankingTable.UpdateTodaysVoteCount(vote, user)
-	var todaysRanking communication_types.TodaysRankingPayload = h.rankingTable.GetTodaysVotes()
-	utils.WriteJSON(w, todaysRanking, 200)
+	todaysRanking := h.rankingTable.GetTodaysVotes()
+	if err := utils.WriteJSON(w, todaysRanking, 200); err != nil {
+		log.Err(err).Msg("Failed to write today's ranking JSON.")
+	}
 }
 
 func (h *Handler) handleGettingTodaysMusic(w http.ResponseWriter, r *http.Request) {
 	// get todays music from the DB and return the information
 	todaysMusic := h.rankingTable.GetTodaysMusic()
-	utils.WriteJSON(w, todaysMusic, 200)
+	if err := utils.WriteJSON(w, todaysMusic, 200); err != nil {
+		log.Err(err).Msg("Failed to write today's music JSON.")
+	}
 }
 
 func (h *Handler) handleGettingUsersPastVotes(w http.ResponseWriter, r *http.Request, user auth_types.User) {

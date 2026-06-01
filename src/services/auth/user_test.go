@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
 var registerTestCases = []struct {
 	testCase         string
 	request          *http.Request
@@ -60,15 +58,12 @@ var registerTestCases = []struct {
 	},
 }
 
-
-
-
 func TestRegister(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
 	hp, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
 
 	for _, tc := range registerTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -92,14 +87,13 @@ func TestRegister(t *testing.T) {
 
 }
 
-
 func TestPasswordUpdate(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
 	ogPassword, _ := hashPassword("password123")
-	handler.authTable.CreateUser("Ezequiel", "Ezequiel@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
-	handler.authTable.CreateUser("Ezequiel2", "Ezequiel2@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel", "Ezequiel@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
+	_ = handler.authTable.CreateUser("Ezequiel2", "Ezequiel2@gmail.com", ogPassword, "", auth_types.LocalUserCreationSource.String())
 	user := handler.authTable.GetUserStructFromUsername("Ezequiel2")
 
 	// Both passwords are the same, nothing has changed
@@ -118,7 +112,6 @@ func TestPasswordUpdate(t *testing.T) {
 	assert.True(t, handler.authTable.CorrectEmailAndPassword("Ezequiel2@gmail.com", "other890"), "")
 }
 
-
 func TestDeleteUser(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
@@ -136,5 +129,3 @@ func TestDeleteUser(t *testing.T) {
 	user = handler.authTable.GetUserStructFromUsername("Ezequiel")
 	assert.Equal(t, 0, user.UserId)
 }
-
-

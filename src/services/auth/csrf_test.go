@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 const (
 	getRequestWorks int = iota
 	loginWorks
@@ -92,4 +91,3 @@ func TestCSRFChecking(t *testing.T) {
 	}
 
 }
-

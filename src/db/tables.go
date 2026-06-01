@@ -78,9 +78,9 @@ const createDescriptionsTable = `CREATE TABLE IF NOT EXISTS submissionDescriptio
 /*
 Ranking can include multiple songs that have been ranked, thus it will be
 a string that has specific format easy for tokenization, with each token
-being a reference to a (music ID, rank, 
+being a reference to a (music ID, rank,
 
-Better yet assign the same day to all rankings 
+Better yet assign the same day to all rankings
 */
 
 const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranked (
@@ -106,8 +106,6 @@ const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRankin
 	num_votes INTEGER DEFAULT 0
 )`
 
-
-
 const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
 	entry INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	user_id INTEGER references users(user_id) ON DELETE CASCADE,
@@ -132,13 +130,17 @@ func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
 		createRankingTable, createTodaysRankingTable, 
 		serverState, createToBeRankedTable, createUserVotesTable}
 	functions := [...]string{hasUserSubmitCountHitLimit}
-	createDBHelper(db, testMode, tables[:], "Tables")
-	createDBHelper(db, testMode, functions[:], "Functions")
+	if err := createDBHelper(db, testMode, tables[:], "Tables"); err != nil {
+		return err
+	}
+	if err := createDBHelper(db, testMode, functions[:], "Functions"); err != nil {
+		return err
+	}
 	log.Info().Msg("Created Tables and Functions")
 	return nil
 }
 
-func createDBHelper(db *sql.DB, testMode bool, creationSet []string, creationType string) error{
+func createDBHelper(db *sql.DB, testMode bool, creationSet []string, creationType string) error {
 	for _, v := range creationSet {
 		_, err := db.Exec(v)
 		if err != nil {
@@ -154,17 +156,21 @@ func createDBHelper(db *sql.DB, testMode bool, creationSet []string, creationTyp
 
 func initializeOrGetServerState(db *sql.DB) {
 	res, _ := db.Exec("SELECT * FROM server_state")
-	if res == nil{
+	if res == nil {
 		return
 	}
 	resNum, _ := res.RowsAffected()
 	if resNum > 1 {
 		log.Fatal().Msg("There is more than one row for server state.")
-	} else if resNum == 1{
-		db.QueryRow("SELECT allow_user_creation FROM server_state").Scan(&config.DynamicEnvs.AllowUserCreation)
-	} else if resNum == 0{
-		db.Exec(`INSERT INTO server_state(allow_user_creation, update_date)
-		VALUES($1, $2)`, true, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
+	} else if resNum == 1 {
+		if err := db.QueryRow("SELECT allow_user_creation FROM server_state").Scan(&config.DynamicEnvs.AllowUserCreation); err != nil {
+			log.Err(err).Msg("Failed to read server state.")
+		}
+	} else if resNum == 0 {
+		if _, err := db.Exec(`INSERT INTO server_state(allow_user_creation, update_date)
+		VALUES($1, $2)`, true, time.Now().UTC().Format(config.StaticEnvs.TimeFormat)); err != nil {
+			log.Err(err).Msg("Failed to initialize server state.")
+		}
 		return
 	}
 }

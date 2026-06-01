@@ -21,7 +21,7 @@ func CreateMusicTableDriver(db *sql.DB, abd *db.AbstractDB) *MusicTable {
 	return &MusicTable{db: db, AbstractDB: abd}
 }
 
-// TODO: Check if the song URL is already present, and if so don't insert song again. 
+// TODO: Check if the song URL is already present, and if so don't insert song again.
 func (mdb MusicTable) InsertNewSong(musicEntry *communication_types.SubmitSong, user auth_types.User) int {
 	const executeString = `INSERT INTO music(insert_date, name, artist, songURL, genre, subgenre, submitter_id) 
 	VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id`
@@ -38,9 +38,10 @@ func (mdb MusicTable) InsertNewSong(musicEntry *communication_types.SubmitSong, 
 func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, curator auth_types.User) error {
 	timeInserted := time.Now()
 
-	
 	var hitLimit bool
-	mdb.db.QueryRow(`SELECT reached_submit_limit($1, $2)`, curator.UserId, curator.UserRole.GetRolesSubmissionLimit()).Scan(&hitLimit)
+	if err := mdb.db.QueryRow(`SELECT reached_submit_limit($1, $2)`, curator.UserId, curator.UserRole.GetRolesSubmissionLimit()).Scan(&hitLimit); err != nil {
+		log.Err(err).Msg("Failed to check submission limit.")
+	}
 
 	if (hitLimit){
 		log.Warn().Msgf("User %s has hit their submission limit", curator.Username)
@@ -80,20 +81,22 @@ func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []commu
 	var submissions []communication_types.SubmitSongSet = []communication_types.SubmitSongSet{}
 
 	for {
-		var songSet communication_types.SubmitSongSet = communication_types.SubmitSongSet{}
-		for range 3{
-			if (!result.Next()){
+		songSet := communication_types.SubmitSongSet{}
+		for range 3 {
+			if !result.Next() {
 				return submissions
 			}
 			var description, name, artist, songURL string
-			result.Scan(&description, &name, &artist, &songURL)
+			if err := result.Scan(&description, &name, &artist, &songURL); err != nil {
+				log.Err(err).Msg("Problem scanning song submission.")
+				return submissions
+			}
 			songSet.Description = description
 			songSet.Songs = append(
-				songSet.Songs, 
+				songSet.Songs,
 				communication_types.SubmitSong{Name: name, Artist: artist, SongURL: songURL},
 			)
 		}
 		submissions = append(submissions, songSet)
 	}
 }
-

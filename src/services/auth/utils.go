@@ -28,7 +28,10 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed
 
 		// Is your session cookie valid, and have a user tied to it?
 		var sessionCookie string
-		config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, encodedSessionCookie.Value, &sessionCookie)
+		if err := config.SecureCookie.Decode(config.StaticEnvs.SessionCookieName, encodedSessionCookie.Value, &sessionCookie); err != nil {
+			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
+			return
+		}
 		user, err := adb.GetUserFromSessionID(sessionCookie, csrfToken, requiresCSRF)
 		if err != nil {
 			http.Error(w, "Unable to perform action. Please clear your cookies and login again.", http.StatusUnauthorized)
@@ -37,7 +40,7 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed
 
 		privilegeToHigh := user.UserPrivileges.EnumIndex() < minPrivAllowed.EnumIndex()
 		roleToHigh := user.UserRole.EnumIndex() < minRoleAllowed.EnumIndex()
-		if (privilegeToHigh || roleToHigh){
+		if privilegeToHigh || roleToHigh {
 			http.Redirect(w, r, fmt.Sprintf("%s/", config.DynamicEnvs.WebPageDomain), http.StatusTemporaryRedirect)
 			return
 		}
@@ -47,10 +50,9 @@ func RequireAuth(handlerFunc AuthHandlerFunc, adb *db.AbstractDB, minPrivAllowed
 	}
 }
 
-func RequireAuthMinimumPrivileges(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc{
+func RequireAuthMinimumPrivileges(handlerFunc AuthHandlerFunc, adb *db.AbstractDB) http.HandlerFunc {
 	return RequireAuth(handlerFunc, adb, auth_types.NoPrivileges, auth_types.VoterRole)
 }
-
 
 // CSRF Has to be set as a header through JS. Otherwise it's still vulnerable to CSRF. Based on assumption that malicious user can't run
 // scripts on browser that impersonate origin of my domain
@@ -61,7 +63,7 @@ func retrieveCSRFToken(r *http.Request) (string, bool) {
 			return "", true
 		}
 		var decoded string
-		config.SecureCookie.Decode(config.StaticEnvs.CSRFCookieName, header, &decoded)
+		_ = config.SecureCookie.Decode(config.StaticEnvs.CSRFCookieName, header, &decoded)
 		return decoded, true
 	}
 	return "", false
@@ -89,7 +91,7 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 		return
 	}
 
-	var oneHundred50Days time.Duration = 150 * (time.Hour * 24)
+	oneHundred50Days := 150 * (time.Hour * 24)
 
 	// Long enough that users don't have to login every time, but also not to long where someone attempting brute force can get in.
 	http.SetCookie(w, &http.Cookie{

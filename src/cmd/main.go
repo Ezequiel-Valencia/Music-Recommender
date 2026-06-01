@@ -7,7 +7,6 @@ import (
 	"music-recommender/db/ranking_table"
 	"music-recommender/types/internal_types/auth_types"
 	"music-recommender/utils"
-	"net/http"
 
 	"github.com/rs/zerolog/log"
 )
@@ -20,7 +19,7 @@ func main() {
 	// Task set in separate thread that runs once a day
 	go DailyTaskSet(dbPointer)
 
-	var server *http.Server = api.CreateMainServer(dbPointer, abstractDB) //Pointer to the API server struct
+	server := api.CreateMainServer(dbPointer, abstractDB)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal().AnErr("error", err).Msg("Server can't start.")
 	}
@@ -62,7 +61,7 @@ func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
 	return resNum > 1 || err != nil
 }
 
-func countVoteAndPlaceNewSongs(dbPointer *sql.DB){
+func countVoteAndPlaceNewSongs(dbPointer *sql.DB) {
 	// Get the rankings
 	todaysRankingDriver := ranking_table.CreateTodaysRankingDriver(dbPointer)
 	if (!todaysRankingDriver.AnySongsToBeRanked()){
@@ -70,20 +69,18 @@ func countVoteAndPlaceNewSongs(dbPointer *sql.DB){
 		return
 	}
 	rankedSongs, topSong, err := todaysRankingDriver.CalculateTodaysRank()
-	if (err != nil){
+	if err != nil {
 		return
 	}
 
-	if (topSong != -1){
+	if topSong != -1 {
 		// Insert them into ranked table
 		ranking_table.CreateRankedDriver(dbPointer).InsertAlreadyRankedSongs(topSong, rankedSongs)
 		todaysRankingDriver.CleanTodaysRanking()
 	} else {
 		log.Warn().Msg("No songs where available to calculate rank.")
 	}
-	
+
 	// Insert new songs into todaysRanking, inefficient and random for now
 	todaysRankingDriver.SelectNewSongs()
 }
-
-

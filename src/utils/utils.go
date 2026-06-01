@@ -13,20 +13,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-
-func WriteJSON(w http.ResponseWriter, output any, status int) error{
+func WriteJSON(w http.ResponseWriter, output any, status int) error {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(output)
 }
 
 type MalformedRequest struct {
-    Status int
-    Msg    string
+	Status int
+	Msg    string
 }
 
 func (mr *MalformedRequest) Error() string {
-    return mr.Msg
+	return mr.Msg
 }
 
 func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
@@ -88,18 +87,17 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 
 	err = dec.Decode(&struct{}{})
 	if !errors.Is(err, io.EOF) {
-        msg := "Request body must only contain a single JSON object"
-        malformedRequest = MalformedRequest{Status: http.StatusBadRequest, Msg: msg}
-        http.Error(w, malformedRequest.Msg, malformedRequest.Status)
-        return &malformedRequest
-    }
+		msg := "Request body must only contain a single JSON object"
+		malformedRequest = MalformedRequest{Status: http.StatusBadRequest, Msg: msg}
+		http.Error(w, malformedRequest.Msg, malformedRequest.Status)
+		return &malformedRequest
+	}
 
-    return nil
+	return nil
 }
 
-
-func IsStringAlphaNumeric(text string) bool{
-    return regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(text)
+func IsStringAlphaNumeric(text string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(text)
 }
 
 func IsStringAlphaNumericWithPunctuation(text string) bool{
@@ -109,13 +107,13 @@ func IsStringAlphaNumericWithPunctuation(text string) bool{
 // The extra chars allowed by this function is as follows
 // (,)!@#$%^&*.:-;_
 func IsStringANWithExtraChars(text string) bool {
-    return regexp.MustCompile(`^[a-zA-Z0-9()!@#$%^&*.,:;\-_]*$`).MatchString(text)
+	return regexp.MustCompile(`^[a-zA-Z0-9()!@#$%^&*.,:;\-_]*$`).MatchString(text)
 
 }
 
-func IsProperYouTubeLink(link string) bool{
-    _, err := GetResourceFromYouTubeLink(link)
-    return err == nil
+func IsProperYouTubeLink(link string) bool {
+	_, err := GetResourceFromYouTubeLink(link)
+	return err == nil
 }
 
 func GetResourceFromYouTubeLink(link string) (string, error){
@@ -151,11 +149,12 @@ func executeAtXMath(hour int, now time.Time) time.Time{
     return newDate
 }
 
-/* Within a 24 hour time system, sleep until that set hour
-   Starts at 0:00 (12am) and ends at 23:00 (11pm)
-*/
-func SleepUntilXHour(hour int){
-    now := time.Now()
-    time.Sleep(executeAtXMath(hour, now).Sub(now))
-}
+/*
+Within a 24 hour time system, sleep until that set hour
 
+	Starts at 0:00 (12am) and ends at 23:00 (11pm)
+*/
+func SleepUntilXHour(hour int) {
+	now := time.Now()
+	time.Sleep(executeAtXMath(hour, now).Sub(now))
+}

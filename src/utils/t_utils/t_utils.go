@@ -66,7 +66,9 @@ func GetTestDB() (*db.AbstractDB, *sql.DB) {
 // Completely destroys everything regarding the containers and DB
 func TearDownTestDB() {
 	if dbPointer != nil && adb != nil && pool != nil && resource != nil {
-		dbPointer.Close()
+		if err := dbPointer.Close(); err != nil {
+			log.Fatal(err)
+		}
 		adb = nil
 		dbPointer = nil
 		if err := pool.Purge(resource); err != nil {
@@ -82,7 +84,9 @@ func ResetTestDB() {
 	if err != nil {
 		log.Fatalf("Could not reset test DB: %s", err)
 	}
-	db.CreateTablesAndFunctions(dbPointer, true)
+	if err := db.CreateTablesAndFunctions(dbPointer, true); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // If not Alpha-Numeric compliant, UTF-32 characters are generated.

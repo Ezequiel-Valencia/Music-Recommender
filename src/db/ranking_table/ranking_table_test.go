@@ -82,5 +82,3 @@ func TestUpdateRanking(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("Song %d", 2 - i), song.Title)
 	}
 }
-
-

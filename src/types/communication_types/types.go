@@ -8,16 +8,16 @@ type SubmitVotePayload struct {
 }
 
 type SubmitSong struct {
-	Name string
-	Artist string
-	SongURL string		
-	Genre string
+	Name     string
+	Artist   string
+	SongURL  string
+	Genre    string
 	Subgenre string
 }
 
 type SubmitSongSet struct {
 	Description string
-	Songs []SubmitSong
+	Songs       []SubmitSong
 }
 
 /*
@@ -27,28 +27,26 @@ type TodaysRankingPayload struct {
 	RankingMap map[int]float64
 }
 
-type MusicPayloadEntry struct{
-	Title string
-	Artist string
+type MusicPayloadEntry struct {
+	Title        string
+	Artist       string
 	PathResource string
-	SongOrder int
+	SongOrder    int
 }
 
 type TodaysMusicPayload struct {
-	CuratorName string
+	CuratorName        string
 	CuratorDescription string
-	MusicEntries []MusicPayloadEntry
+	MusicEntries       []MusicPayloadEntry
 }
-
 
 type CalendarPayload struct {
-
 }
 
-type UserDTO struct{
-	Username string
+type UserDTO struct {
+	Username     string
 	CreationDate string
-	Role string
+	Role         string
 }
 
 type SongsUserVotedOnDTO struct{

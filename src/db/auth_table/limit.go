@@ -35,7 +35,9 @@ func (at AuthTable) SetAbilityForUserCreation(allowCreation bool) {
 	if resNum > 1 {
 		log.Fatal().Msg("There is more than one row for server state.")
 	} else if resNum == 1 {
-		at.db.Exec("UPDATE server_state SET allow_user_creation = $1, update_date = $2", allowCreation, time.Now().UTC().Format(config.StaticEnvs.TimeFormat))
+		if _, err := at.db.Exec("UPDATE server_state SET allow_user_creation = $1, update_date = $2", allowCreation, time.Now().UTC().Format(config.StaticEnvs.TimeFormat)); err != nil {
+			log.Err(err).Msg("Failed to update server state.")
+		}
 	}
 }
 

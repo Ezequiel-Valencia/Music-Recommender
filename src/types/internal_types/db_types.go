@@ -7,7 +7,7 @@ type TodaysRankingSubmission struct {
 }
 
 type RankedSong struct {
-	SongID	int
+	SongID    int
 	CuratorId int
-	NumVotes int
+	NumVotes  int
 }

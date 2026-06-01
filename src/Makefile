@@ -9,3 +9,7 @@ testv:
 
 run:
 	@go run ./cmd/main.go
+
+check:
+	@golangci-lint run
+	@golangci-lint fmt

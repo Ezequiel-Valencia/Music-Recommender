@@ -5,7 +5,7 @@ import "time"
 type User struct {
 	UserId         int
 	Username       string
-	Email		   string
+	Email          string
 	CreationSource UserCreationSource
 	CreationDate   time.Time
 	UserRole       UserRoles
@@ -53,20 +53,20 @@ func StringToUserRoles(s string) UserRoles {
 	}
 }
 
-func (ur UserRoles) GetRolesSubmissionLimit() int{
-	switch ur.EnumIndex(){
-		case UnlimitedRole.EnumIndex():
-			return 1000
-		case TrustedCuratorRole.EnumIndex():
-			return 15
-		case CuratorRole.EnumIndex():
-			return 5
-		case OneSubmissionRole.EnumIndex():
-			return 1
-		case VoterRole.EnumIndex():
-			return 0
-		default:
-			return 0
+func (ur UserRoles) GetRolesSubmissionLimit() int {
+	switch ur.EnumIndex() {
+	case UnlimitedRole.EnumIndex():
+		return 1000
+	case TrustedCuratorRole.EnumIndex():
+		return 15
+	case CuratorRole.EnumIndex():
+		return 5
+	case OneSubmissionRole.EnumIndex():
+		return 1
+	case VoterRole.EnumIndex():
+		return 0
+	default:
+		return 0
 	}
 }
 
