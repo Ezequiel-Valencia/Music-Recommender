@@ -191,9 +191,9 @@ func TestRequireAuthPrivileges(t *testing.T) {
 		endPointWithAuth := RequireAuth(handler.loggedInUserInfo, handler.authTable.AbstractDB, tc.privilege, tc.role)
 		rr := httptest.NewRecorder()
 
-		if tc.sessionState == elevatedPrivileges {
-			handler.authTable.SetUserPrivilege("Ezequiel", auth_types.AdminPrivileges)
-			handler.authTable.SetUserRole("Ezequiel", auth_types.CuratorRole)
+		if (tc.sessionState == elevatedPrivileges){
+			handler.authTable.SetUserPrivilege(user, auth_types.AdminPrivileges)
+			handler.authTable.SetUserRole(user, auth_types.CuratorRole)
 		}
 
 		endPointWithAuth(rr, request)

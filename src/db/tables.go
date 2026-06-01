@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Good enough table SCHEMA for now
 
 // User Identity instead of serial for UID's cause it's SQL compliant
 // https://stackoverflow.com/questions/55300370/postgresql-serial-vs-identity
@@ -20,10 +19,23 @@ const createUserTable string = `CREATE TABLE IF NOT EXISTS users (
 	subject_identifier TEXT,
 	creation_source TEXT NOT NULL,
 	creation_date TIMESTAMP NOT NULL,
-	user_role TEXT NOT NULL,
-	user_privileges TEXT NOT NULL,
 	song_sets_submitted INTEGER NOT NULL DEFAULT(0),
-	last_vote TIMESTAMP
+	last_vote TIMESTAMP,
+	UNIQUE(username, email)
+)`
+
+const createUserAuthorizationTable string = `CREATE TABLE IF NOT EXISTS userPrivileges (
+	user_id INTEGER PRIMARY KEY references users(user_id) ON DELETE CASCADE NOT NULL,
+	moderator TEXT NOT NULL,
+	music_submission TEXT NOT NULL
+)`
+
+// All the votes that users have made
+const createUserVotesTable string = `CREATE TABLE IF NOT EXISTS userVotes (
+	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+	user_id INTEGER references users(user_id),
+	song_id INTEGER references music(id),
+	date TIMESTAMP NOT NULL
 )`
 
 /*
@@ -43,7 +55,8 @@ const createMusicTable string = `CREATE TABLE IF NOT EXISTS music (
 	subgenre TEXT,
 	submitter_id INTEGER references users(user_id),
 	rank_id TEXT,
-	num_ranks INTEGER
+	num_ranks INTEGER,
+	UNIQUE(songURL)
 )`
 
 /*
@@ -52,9 +65,14 @@ Time stamp acts as a form of grouping the different rows together
 const createToBeRankedTable = `CREATE TABLE IF NOT EXISTS toBeRanked (
 	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
 	song_id INTEGER references music(id),
-	description TEXT NOT NULL,
+	description_id INTEGER references submissionDescriptions(id),
 	curator_id INTEGER references users(user_id),
 	date_submitted TIMESTAMP NOT NULL
+)`
+
+const createDescriptionsTable = `CREATE TABLE IF NOT EXISTS submissionDescriptions (
+	id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
+	description TEXT NOT NULL
 )`
 
 /*
@@ -70,7 +88,7 @@ const createRankingTable string = `CREATE TABLE IF NOT EXISTS ranked (
 	song_id INTEGER references music(id),
 	curator_id INTEGER references users(user_id),
 	date_ranked TIMESTAMP NOT NULL,
-	num_votes INTEGER,
+	num_votes INTEGER NOT NULL,
 	winner BOOLEAN
 )`
 
@@ -82,9 +100,7 @@ Clean the table, and place the new songs which will be ranked within the table
 const createTodaysRankingTable string = `CREATE TABLE IF NOT EXISTS todaysRanking (
 	song_id INTEGER references music(id),
 	curator_id INTEGER references users(user_id),
-	description TEXT NOT NULL,
-	song_name TEXT NOT NULL,
-	song_artist TEXT NOT NULL,
+	description_id INTEGER references submissionDescriptions(id) ON DELETE CASCADE,
 	song_path_resource TEXT NOT NULL,
 	song_order INTEGER NOT NULL,
 	num_votes INTEGER DEFAULT 0
@@ -95,7 +111,8 @@ const createSessionIDTable string = `CREATE TABLE IF NOT EXISTS sessions (
 	user_id INTEGER references users(user_id) ON DELETE CASCADE,
 	session_id TEXT NOT NULL,
 	csrf_token TEXT NOT NULL,
-	creation_date TIMESTAMP NOT NULL
+	creation_date TIMESTAMP NOT NULL,
+	UNIQUE(session_id)
 )`
 
 const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
@@ -107,8 +124,11 @@ const serverState string = `CREATE TABLE IF NOT EXISTS server_state (
 
 // 0 for table primary key is special value, will not be used and can be assumed as NULL
 func CreateTablesAndFunctions(db *sql.DB, testMode bool) error {
-	tables := [...]string{createUserTable, createMusicTable, createSessionIDTable,
-		createRankingTable, createTodaysRankingTable, serverState, createToBeRankedTable}
+	tables := [...]string{createUserTable, createMusicTable, 
+		createUserAuthorizationTable,
+		createDescriptionsTable, createSessionIDTable,
+		createRankingTable, createTodaysRankingTable, 
+		serverState, createToBeRankedTable, createUserVotesTable}
 	functions := [...]string{hasUserSubmitCountHitLimit}
 	if err := createDBHelper(db, testMode, tables[:], "Tables"); err != nil {
 		return err

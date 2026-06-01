@@ -57,8 +57,9 @@ func TestLogin(t *testing.T) {
 	handler := createAuthHandler()
 	defer t_utils.ResetTestDB()
 
-	hp, _ := hashPassword("password123")
-	_ = handler.authTable.CreateUser("Ezequiel", "fake@gmail.com", hp, "", auth_types.LocalUserCreationSource.String())
+	testUser := auth_types.User{Username: "Ezequiel", Email: "fake@gmail.com", CreationSource: auth_types.LocalUserCreationSource}
+	_, db := t_utils.GetTestDB()
+	t_utils.CreateFakeUser(db, &testUser, "password123")
 
 	for _, tc := range invalidUsernameOrPasswordTestCases {
 		tc.request.Header.Set("Content-Type", "application/x-www-form-urlencoded")

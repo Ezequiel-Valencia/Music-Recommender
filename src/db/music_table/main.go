@@ -43,29 +43,42 @@ func (mdb MusicTable) InsertSongSet(songSet *communication_types.SubmitSongSet, 
 		log.Err(err).Msg("Failed to check submission limit.")
 	}
 
-	if hitLimit {
+	if (hitLimit){
+		log.Warn().Msgf("User %s has hit their submission limit", curator.Username)
 		return errors.New("user has reached song submission limit")
 	}
 
-	for _, song := range songSet.Songs {
+	var descriptionID int
+	const submissionInsertion = `INSERT INTO submissionDescriptions(description) VALUES($1) RETURNING id`
+	mdb.db.QueryRow(submissionInsertion, songSet.Description).Scan(&descriptionID)
+
+	for _, song := range songSet.Songs{
 		songID := mdb.InsertNewSong(&song, curator)
-		if _, err := mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description, curator_id, date_submitted)
-		VALUES($1, $2, $3, $4)`, songID, songSet.Description, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat)); err != nil {
-			log.Err(err).Msg("Can't queue song for ranking.")
+		_, err := mdb.db.Exec(`INSERT INTO toBeRanked(song_id, description_id, curator_id, date_submitted)
+		VALUES($1, $2, $3, $4)`, songID, descriptionID, curator.UserId, timeInserted.Format(config.StaticEnvs.TimeFormat))
+		if (err != nil){
+			log.Err(err).Msg("Problem inserting song set to be ranked.")
+			return err
 		}
 	}
 	return nil
 }
 
 func (mdb MusicTable) GetUserSubmissionsToBeRanked(user auth_types.User) []communication_types.SubmitSongSet {
-	result, _ := mdb.db.Query(`SELECT toBeRanked.description, 
-			music.name, music.artist, music.songURL 
+	result, err := mdb.db.Query(`SELECT des.description, 
+			music.name, music.artist, music.songURL
 	FROM toBeRanked
 	INNER JOIN music ON music.id = toBeRanked.song_id 
+	INNER JOIN submissionDescriptions des ON des.id = toBeRanked.description_id
 	WHERE toBeRanked.curator_id = $1;
 	`, user.UserId)
 
-	submissions := []communication_types.SubmitSongSet{}
+	if (err != nil){
+		log.Err(err).Msg("Can't get user sets to be ranked.")
+		return []communication_types.SubmitSongSet{}
+	}
+
+	var submissions []communication_types.SubmitSongSet = []communication_types.SubmitSongSet{}
 
 	for {
 		songSet := communication_types.SubmitSongSet{}

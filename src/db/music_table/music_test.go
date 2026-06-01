@@ -2,6 +2,7 @@ package music_table_test
 
 import (
 	"database/sql"
+	"fmt"
 	"music-recommender/db/music_table"
 	"music-recommender/types/communication_types"
 	"music-recommender/utils/t_utils"
@@ -23,15 +24,18 @@ func TestInsertSet(t *testing.T) {
 	t_utils.CreateFakeUser(dbPointer, &t_utils.TestUserCuratorModerator, "password")
 	driver := music_table.CreateMusicTableDriver(dbPointer, adb)
 
-	fakeSong := communication_types.SubmitSong{
-		Name:     "Fake",
-		Artist:   "Artist",
-		SongURL:  "Song url",
-		Genre:    "Genre",
-		Subgenre: "Sub",
+	var fakeSongSet = []communication_types.SubmitSong{}
+	for i := range(3){
+		fakeSong := communication_types.SubmitSong{
+			Name: "Fake",
+			Artist: "Artist",
+			SongURL: fmt.Sprintf("Song url %d", i),
+			Genre: "Genre",
+			Subgenre: "Sub",
+		}
+		fakeSongSet = append(fakeSongSet, fakeSong)
 	}
-	fakeSongSet := []communication_types.SubmitSong{fakeSong, fakeSong, fakeSong}
-
+	
 	/////////////
 	//! Tests !//
 	/////////////
@@ -51,9 +55,10 @@ func TestInsertSet(t *testing.T) {
 	expectedErrorAndRowCount(t, dbPointer, err, false, 3)
 
 	var description string
-	var curatorID int
+	var curatorID, description_id int
 	var timeSubmitted time.Time
-	_ = dbPointer.QueryRow(`SELECT description, curator_id, date_submitted FROM toBeRanked WHERE song_id = 1`).Scan(&description, &curatorID, &timeSubmitted)
+	dbPointer.QueryRow(`SELECT description_id, curator_id, date_submitted FROM toBeRanked WHERE song_id = 1`).Scan(&description_id, &curatorID, &timeSubmitted)
+	dbPointer.QueryRow(`SELECT description FROM submissionDescriptions WHERE id = $1`, description_id).Scan(&description)
 	assert.Equal(t, "Fake Description", description)
 	assert.Equal(t, t_utils.TestUserCuratorModerator.UserId, curatorID)
 	sqlRows, _ := dbPointer.Query(`SELECT date_submitted FROM toBeRanked`)

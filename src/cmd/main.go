@@ -50,7 +50,7 @@ func dbCleanUp(db *sql.DB) {
 }
 
 func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
-	res, err := dbPointer.Exec("SELECT * FROM users WHERE user_privileges = $1 OR user_role = $2", auth_types.OwnerPrivileges, auth_types.UnlimitedRole)
+	res, err := dbPointer.Exec("SELECT * FROM userPrivileges WHERE moderator = $1 OR music_submission = $2", auth_types.OwnerPrivileges.String(), auth_types.UnlimitedRole.String())
 	resNum, _ := res.RowsAffected()
 	if err != nil {
 		log.Err(err).Msg("Error occurred checking if there is more than one Owner")
@@ -64,6 +64,10 @@ func isThereMoreThanOneOwner(dbPointer *sql.DB) bool {
 func countVoteAndPlaceNewSongs(dbPointer *sql.DB) {
 	// Get the rankings
 	todaysRankingDriver := ranking_table.CreateTodaysRankingDriver(dbPointer)
+	if (!todaysRankingDriver.AnySongsToBeRanked()){
+		log.Info().Msg("No new songs to select from.")
+		return
+	}
 	rankedSongs, topSong, err := todaysRankingDriver.CalculateTodaysRank()
 	if err != nil {
 		return

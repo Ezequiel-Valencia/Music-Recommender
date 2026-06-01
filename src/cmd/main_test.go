@@ -112,8 +112,8 @@ func TestDailyDBTask(t *testing.T) {
 	VALUES($1, $2, $3, $4)`, testUser.UserId, "ses", "crf", nowTime.Add(twoHundredDaysAgo).UTC().Format(config.StaticEnvs.TimeFormat))
 
 	// New Session
-	_, _ = dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date)
-	VALUES($1, $2, $3, $4)`, testUser.UserId, "ses", "crf", nowTime.UTC().Format(config.StaticEnvs.TimeFormat))
+	dbPointer.Exec(`INSERT INTO sessions(user_id, session_id, csrf_token, creation_date) 
+	VALUES($1, $2, $3, $4)`, testUser.UserId, "ses2", "crf", nowTime.UTC().Format(config.StaticEnvs.TimeFormat))
 
 	res, _ := dbPointer.Exec("SELECT * FROM sessions")
 	resNum, _ := res.RowsAffected()

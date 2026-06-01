@@ -74,7 +74,7 @@ func (h *Handler) setUserRole(w http.ResponseWriter, r *http.Request, user auth_
 		return
 	}
 
-	h.authTable.SetUserRole(username, role)
+	h.authTable.SetUserRole(user, role)
 	w.Header().Add("HX-Refresh", "true")
 }
 
@@ -97,7 +97,7 @@ func (h *Handler) setUserPrivilege(w http.ResponseWriter, r *http.Request, user 
 		return
 	}
 
-	h.authTable.SetUserPrivilege(username, privilege)
+	h.authTable.SetUserPrivilege(user, privilege)
 	w.Header().Add("HX-Refresh", "true")
 }
 

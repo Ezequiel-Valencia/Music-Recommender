@@ -18,9 +18,14 @@ type AbstractDB struct {
 }
 
 func CreateDB(testMode bool) (*AbstractDB, *sql.DB, error) {
+	var disableSSL string = " sslmode=disable"
+	if (config.DynamicEnvs.DBSsl){
+		disableSSL = ""
+	}
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		config.DynamicEnvs.DBHost, config.DynamicEnvs.DBPort, config.DynamicEnvs.DBUser, config.DynamicEnvs.DBPasswd, config.DynamicEnvs.DBName)
+		"password=%s dbname=%s%s",
+		config.DynamicEnvs.DBHost, config.DynamicEnvs.DBPort, config.DynamicEnvs.DBUser, config.DynamicEnvs.DBPasswd, config.DynamicEnvs.DBName,
+	disableSSL)
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		if testMode {
@@ -63,8 +68,11 @@ func (abd AbstractDB) GetUserFromSessionID(sessionCookie string, csrfToken strin
 
 	var user_id int
 	var username, email, creation_source, creation_date, user_role, user_privileges string
-	err = abd.db.QueryRow(`SELECT user_id, username, email, creation_source, creation_date, user_role, user_privileges 
-	FROM users WHERE user_id = $1`, userID).Scan(&user_id,
+	err = abd.db.QueryRow(`SELECT users.user_id, users.username, users.email, 
+	users.creation_source, users.creation_date, priv.music_submission, priv.moderator 
+	FROM users 
+	INNER JOIN userPrivileges priv ON priv.user_id = users.user_id
+	WHERE users.user_id = $1 AND priv.user_id = $1`, userID).Scan(&user_id,
 		&username, &email, &creation_source, &creation_date, &user_role, &user_privileges)
 	if err == sql.ErrNoRows || err != nil {
 		return auth_types.User{}, err

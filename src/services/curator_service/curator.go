@@ -70,11 +70,12 @@ func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_
 		url := r.Form.Get(fmt.Sprintf("url-%d", i+1))
 
 		songCheck := len(songName) < 50 && len(songName) > 2 && utils.IsStringAlphaNumericWithPunctuation(songName)
-		artistCheck := len(artist) < 30 && len(artist) > 2 && utils.IsStringAlphaNumericWithPunctuation(artist)
+		artistCheck := len(artist) < 50 && len(artist) > 2 && utils.IsStringAlphaNumericWithPunctuation(artist)
 		urlCheck := len(url) < 75 && utils.IsProperYouTubeLink(url)
 		if songCheck && artistCheck && urlCheck {
 			submitSong.Songs = append(submitSong.Songs, communication_types.SubmitSong{Name: songName, Artist: artist, SongURL: url})
-		} else {
+		} else{
+			log.Error().Msgf("Improper submission by %s", user.Username)
 			http.Error(w, "Improper submission.", http.StatusBadRequest)
 			return
 		}
@@ -82,9 +83,10 @@ func (h *Handler) submitMusic(w http.ResponseWriter, r *http.Request, user auth_
 
 	description := r.Form.Get("description-box")
 
-	if len(description) < 250 && len(description) > 5 && utils.IsStringAlphaNumericWithPunctuation(description) {
+	if (len(description) < 300 && len(description) > 5 && utils.IsStringAlphaNumericWithPunctuation(description)){
 		submitSong.Description = description
-	} else {
+	} else{
+		log.Error().Msgf("Improper description by %s", user.Username)
 		http.Error(w, "Improper description.", http.StatusBadRequest)
 		return
 	}

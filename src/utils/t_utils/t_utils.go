@@ -107,14 +107,20 @@ func GenerateRandomRuneString(lenOfRunes int, alphaNumericCompliant bool) string
 	return string(b)
 }
 
+// Inserts both a fake user, and user privileges associated with them.
 func CreateFakeUser(db *sql.DB, user *auth_types.User, nonHashedPasswd string) {
 	const executeString = `INSERT INTO users(username, email, password_hash, subject_identifier, creation_source, 
-		creation_date, user_role, user_privileges) 
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
+		creation_date) 
+	VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id`
 
+	var userID int
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(nonHashedPasswd), 14)
 	hashedPassword := string(bytes)
-	_, err := db.Exec(executeString, user.Username, user.Email, hashedPassword, "", user.CreationSource, user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat), user.UserRole, user.UserPrivileges)
+	db.QueryRow(executeString, user.Username, user.Email, 
+		hashedPassword, "", user.CreationSource, 
+		user.CreationDate.UTC().Format(config.StaticEnvs.TimeFormat)).Scan(&userID)
+	_, err := db.Exec(`INSERT INTO userPrivileges(user_id, moderator, music_submission)
+	VALUES($1, $2, $3)`, userID, user.UserPrivileges.String(), user.UserRole.String())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,12 +131,16 @@ func CreateHTTPBodyURLEncoded(body string) io.Reader {
 	return bytes.NewBufferString(b64)
 }
 
-func FillDBWithFakeSongs(dbPointer *sql.DB, adb *db.AbstractDB, user *auth_types.User) {
+func FillDBWithFakeSongsAndDescription(dbPointer *sql.DB, adb *db.AbstractDB, user *auth_types.User, fakeDescription string) {
 	musicDriver := music_table.CreateMusicTableDriver(dbPointer, adb)
 	for i := range 10 {
 		submitSong := communication_types.SubmitSong{Name: fmt.Sprintf("Song %d", i),
-			Artist: fmt.Sprintf("Artist %d", i), SongURL: "https://youtu.be/MPANooz_b9Q"}
+			Artist: fmt.Sprintf("Artist %d", i), SongURL: fmt.Sprintf("https://youtu.be/MPANooz_b9Q%d", i),}
 		musicDriver.InsertNewSong(&submitSong, *user)
+	}
+	_, err := dbPointer.Exec(`INSERT INTO submissionDescriptions(description) VALUES($1)`, fakeDescription)
+	if err != nil{
+		log.Print(err)
 	}
 }
 

@@ -1,5 +1,7 @@
 package communication_types
 
+import "time"
+
 // From the 0 indexed list of songs presented to the user, which one will be chosen [0 - 2]
 type SubmitVotePayload struct {
 	SongOrder int
@@ -46,3 +48,11 @@ type UserDTO struct {
 	CreationDate string
 	Role         string
 }
+
+type SongsUserVotedOnDTO struct{
+	Title string
+	Artist string
+	SongURL string
+	Date time.Time
+}
+

@@ -118,17 +118,17 @@ func (h *Handler) storeUserSessionAsCookie(w http.ResponseWriter, username strin
 }
 
 func validEmailChars(email string) bool {
-	emailLen := len(email) > 6 && len(email) < 40
+	emailLen := len(email) >= 6 && len(email) < 40
 	emailErr := checkmail.ValidateFormat(email)
 	return emailLen && (emailErr == nil)
 }
 
 func validPasswordChars(password string) bool {
-	passwdLen := len(password) > 8 && len(password) < 30
+	passwdLen := len(password) >= 8 && len(password) < 30
 	return passwdLen && utils.IsStringANWithExtraChars(password)
 }
 
 func validUsernameChars(username string) bool {
-	usernameLen := len(username) > 4 && len(username) < 15
+	usernameLen := len(username) >= 4 && len(username) < 15
 	return utils.IsStringAlphaNumeric(username) && usernameLen
 }

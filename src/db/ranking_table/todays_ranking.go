@@ -59,8 +59,9 @@ func (mdb TodaysRankingDriver) UserAlreadyVoteToday(user auth_types.User) bool {
 
 // Song order is based on the 0 indexing of the three songs being voted on.
 func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_types.SubmitVotePayload, user auth_types.User) {
+	timeStamp := time.Now().Format(config.StaticEnvs.TimeFormat)
 	_, err := mdb.db.Exec("UPDATE users SET last_vote = $1 WHERE user_id = $2",
-		time.Now().Format(config.StaticEnvs.TimeFormat), user.UserId)
+		timeStamp, user.UserId)
 
 	if err != nil {
 		log.Err(err).Msg("Can't update users last vote date.")
@@ -72,12 +73,21 @@ func (mdb TodaysRankingDriver) UpdateTodaysVoteCount(submitVote communication_ty
 	if err != nil {
 		log.Err(err).Msg("Update ranking did not work")
 	}
+
+	var songId int
+	mdb.db.QueryRow(`SELECT song_id FROM todaysRanking WHERE song_order = $1`, submitVote.SongOrder).Scan(&songId)
+	_, err = mdb.db.Exec(`INSERT INTO userVotes(user_id, song_id, date) VALUES($1, $2, $3)`, user.UserId, songId, timeStamp)
+	if err != nil{
+		log.Err(err).Msg("Inserting user vote did not work.")
+	}
 }
 
 func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusicPayload {
 
-	rows, err := mdb.db.Query(`SELECT song_id, curator_id, description, song_order, song_name, song_artist, song_path_resource
-	FROM todaysRanking`)
+	rows, err := mdb.db.Query(`SELECT curator_id, des.description, song_order, music.name, music.artist, song_path_resource
+	FROM todaysRanking 
+	INNER JOIN submissionDescriptions des ON todaysRanking.description_id = des.id
+	INNER JOIN music ON todaysRanking.song_id = music.id`)
 	if err != nil {
 		log.Err(err).Msg("Can't Get Todays Music")
 		return &communication_types.TodaysMusicPayload{}
@@ -88,12 +98,9 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 
 	var curatorID int
 	for rows.Next() {
-		var songID, order int
+		var order int
 		var description, songName, songArtist, songResource string
-		if err := rows.Scan(&songID, &curatorID, &description, &order, &songName, &songArtist, &songResource); err != nil {
-			log.Err(err).Msg("Failed to scan todays music.")
-			continue
-		}
+		rows.Scan(&curatorID, &description, &order, &songName, &songArtist, &songResource)
 		musicPayload.CuratorDescription = description
 
 		musicEntry := communication_types.MusicPayloadEntry{Title: songName, Artist: songArtist, SongOrder: order, PathResource: songResource}
@@ -108,6 +115,12 @@ func (mdb TodaysRankingDriver) GetTodaysMusic() *communication_types.TodaysMusic
 	return &musicPayload
 }
 
+func (mdb TodaysRankingDriver) AnySongsToBeRanked() bool{
+	sqlRows, _ := mdb.db.Exec(`SELECT * FROM toBeRanked`)
+	res, _ := sqlRows.RowsAffected()
+	return res > 0
+}
+
 // Dumb for now
 func (mdb TodaysRankingDriver) SelectNewSongs() {
 	var newSongListTime time.Time
@@ -118,19 +131,16 @@ func (mdb TodaysRankingDriver) SelectNewSongs() {
 		return
 	}
 
-	sqlRows, _ := mdb.db.Query(`SELECT song_id, description, curator_id FROM toBeRanked 
+	
+	sqlRows, _ := mdb.db.Query(`SELECT song_id, description_id, curator_id FROM toBeRanked 
 		WHERE date_submitted = $1`, newSongListTime.Format(config.StaticEnvs.TimeFormat))
-
-	whatWillBeRankedToday := internal_types.TodaysRankingSubmission{}
-	for sqlRows.Next() {
-		var description string
-		var curatorId, songId int
-		if err := sqlRows.Scan(&songId, &description, &curatorId); err != nil {
-			log.Err(err).Msg("Failed to scan song for ranking.")
-			continue
-		}
+	
+	var whatWillBeRankedToday internal_types.TodaysRankingSubmission = internal_types.TodaysRankingSubmission{}
+	for sqlRows.Next(){
+		var description_id, curatorId, songId int
+		sqlRows.Scan(&songId, &description_id, &curatorId)
 		whatWillBeRankedToday.CuratorId = curatorId
-		whatWillBeRankedToday.Description = description
+		whatWillBeRankedToday.Description_Id = description_id
 		whatWillBeRankedToday.SongIDs = append(whatWillBeRankedToday.SongIDs, songId)
 	}
 	if _, err := mdb.db.Exec(`DELETE FROM toBeRanked
@@ -148,10 +158,8 @@ func (mdb TodaysRankingDriver) setTodaysRanking(submission *internal_types.Today
 	}
 
 	for i, songID := range submission.SongIDs {
-		var name, url, artist string
-		err := mdb.db.QueryRow("SELECT name, artist, songURL FROM music WHERE id = $1", songID).Scan(
-			&name, &artist, &url,
-		)
+		var url string
+		err := mdb.db.QueryRow("SELECT songURL FROM music WHERE id = $1", songID).Scan(&url)
 		if err != nil {
 			log.Err(err).Msg("Problem setting todays ranking.")
 			return
@@ -161,11 +169,11 @@ func (mdb TodaysRankingDriver) setTodaysRanking(submission *internal_types.Today
 			log.Err(err).Msg("Resource for todays ranking has a problem.")
 		}
 		_, err = mdb.db.Exec(`INSERT INTO todaysRanking(
-			song_id, curator_id, description, song_name, song_artist,
+			song_id, curator_id, description_id,
 			song_path_resource, song_order
 		) 
-		VALUES($1, $2, $3, $4, $5, $6, $7)`,
-			songID, submission.CuratorId, submission.Description, name, artist,
+		VALUES($1, $2, $3, $4, $5)`,
+			songID, submission.CuratorId, submission.Description_Id,
 			resource, i,
 		)
 

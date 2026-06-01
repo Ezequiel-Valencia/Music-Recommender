@@ -21,6 +21,7 @@ type Config struct {
 	DBName   string
 	DBUser   string
 	DBPasswd string
+	DBSsl	 bool
 
 	AllowUserCreation bool
 }
@@ -58,6 +59,7 @@ func initConfig() Config {
 		DBHost:            getEnv("DB_HOST", "localhost", true),
 		DBName:            getEnv("DB_NAME", "postgres", true),
 		DBUser:            getEnv("DB_USER", "postgres", true),
+		DBSsl:             getEnvBool("DB_SSL", false, true),
 		DBPasswd:          getEnv("POSTGRES_PASSWORD", "passwd", false),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "", false), // nothing means localhost
 		WebPageDomain:     getEnv("WEB_PAGE_DOMAIN", "http://localhost:5173", false),
@@ -73,7 +75,19 @@ func getEnvInt(key string, def int, allowForDefault bool) int {
 	if allowForDefault {
 		return def
 	}
-	log.Error().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
+	log.Warn().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
+	return def
+}
+
+func getEnvBool(key string, def bool, allowForDefault bool) bool {
+	if value, ok := os.LookupEnv(key); ok {
+		i, _ := strconv.ParseBool(value)
+		return i
+	}
+	if allowForDefault {
+		return def
+	}
+	log.Warn().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
 	return def
 }
 
@@ -84,6 +98,6 @@ func getEnv(key string, def string, allowForDefault bool) string {
 	if allowForDefault {
 		return def
 	}
-	log.Error().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
+	log.Warn().Msg(fmt.Sprintf("Unable to retrieve evn key %s", key))
 	return def
 }
